@@ -2457,7 +2457,7 @@ async function leaveCharacter() {
 function systemMenu() {
   cancelControl();
   const w = makeWindow("system", i18n.t("system.title"), "system-window");
-  w.body.innerHTML = `${gameAccountMarkup()}<p id="game-version"></p><a class="site-system-guide" href="${esc(i18n.path("/Game/guide/"))}" target="_blank" rel="noopener">${esc(i18n.t("site.game.guide"))}</a><button id="save-game">${esc(cloudMessages(i18n.locale).saveLocal)}</button><button id="force-update">${esc(i18n.t("system.update"))}</button><button id="cloud-account">${esc(accountPresentation(accountSession.state, i18n.locale).button)}</button><button id="select-character">${esc(i18n.t("system.characters"))}</button><button id="offline-download">${esc(i18n.t("system.offline"))}</button><p id="offline-progress" role="status"></p><small>${esc(i18n.t("system.background"))}</small>`;
+  w.body.innerHTML = `${gameAccountMarkup()}<p id="game-version"></p><a class="site-system-guide" href="${esc(i18n.path("/Game/guide/"))}" target="_blank" rel="noopener">${esc(i18n.t("site.game.guide"))}</a><button id="save-game">${esc(cloudMessages(i18n.locale).saveLocal)}</button><button id="force-update">${esc(i18n.t("system.update"))}</button><button id="cloud-account">${esc(gistCloudMessages(i18n.locale).title)}</button><button id="select-character">${esc(i18n.t("system.characters"))}</button><button id="offline-download">${esc(i18n.t("system.offline"))}</button><p id="offline-progress" role="status"></p><small>${esc(i18n.t("system.background"))}</small>`;
   audio().mount(w.body);
   w.body.prepend(
     i18n.picker({
@@ -545617,7 +545617,7 @@ function renderGameAccount() {
     el.textContent = view.link;
   for (const id of ["entry-cloud", "cloud-account"]) {
     const el = document.getElementById(id);
-    if (el) el.textContent = view.button;
+    if (el) el.textContent = gistCloudMessages(i18n.locale).title;
   }
   const entry = document.getElementById("entry");
   if (entry && !entry.hidden && document.getElementById("status"))
@@ -545719,128 +545719,29 @@ async function completeGameSignIn(source = "cloud_panel") {
   });
   return task.promise;
 }
-function cloudAccountWindow(source = "cloud_panel") {
+import { createGistCloud, gistCloudMessages } from "/Game/site-assets/gist-cloud.mjs";
+const gistCloud = createGistCloud({
+  game: "classic",
+  prepare: async () => (await localAPI("cloud/prepare", {
+    build: document.querySelector('meta[name="dream-build"]')?.content,
+  }, eventCursor)).saveJson,
+  preview: saveJson => localAPI("cloud/preview", { saveJson }, eventCursor),
+  restore: async saveJson => {
+    if (state.stage === "Game") await command("LogOut");
+    await accept(await localAPI("cloud/restore", { saveJson }, eventCursor));
+    rolesStamp = null;
+    renderNativeRoles();
+    if (state.roles?.length && !$("#name")?.value.trim()) $("#new-character").hidden = true;
+    cloudAccountWindow();
+  },
+});
+function cloudAccountWindow() {
   cancelControl();
   closeNPC();
   cloudPanel?.dispose();
-  const w = makeWindow(
-    "cloud",
-    accountPresentation(accountSession.state, i18n.locale).title,
-    "system-window cloud-window",
-  );
+  const w = makeWindow("cloud", gistCloudMessages(i18n.locale).title, "system-window cloud-window");
   cloudPanelWindow = w;
-  const exclusive = (action) => gameAuto.exclusive(action);
-  const panel = mountCloudSavePanel(w.body, {
-    locale: i18n.locale,
-    jobs,
-    user: () => accountSession.state.user,
-    status: () => gameAuto.status,
-    load: async () => {
-      await accountSession.refresh();
-      const view = await cloudSync.view();
-      if (!accountSession.state.user && cloudSync.owner)
-        view.owner = { displayName: cloudPanelMessages(i18n.locale).savedAccount };
-      return view;
-    },
-    sync: async () => {
-      const returning = state.stage === "Game",
-        owner = cloudSync.owner,
-        generation = cloudSync.generation;
-      try {
-        await exclusive(async () => {
-          if (state.stage === "Game") {
-            await command("LogOut");
-            if (state.stage === "Game") throw Error("pendingSelection");
-          }
-          await cloudSync.context();
-          // Release the manual gate before invoking the uploader.
-          gameAuto.hold = null;
-        });
-        await gameAuto.syncNow({ flush: true });
-      } finally {
-        // Logout closes game windows. Continue this explicit workflow in a fresh
-        // panel after context verification, without reviving a disposed panel.
-        if (
-          returning &&
-          owner === cloudSync.owner &&
-          generation === cloudSync.generation &&
-          state.stage === "Select" &&
-          !cloudPanelWindow?.el.isConnected
-        )
-          cloudAccountWindow(source);
-      }
-    },
-    resolve: (choices) =>
-      exclusive(() =>
-        cloudSync.binding ? cloudSync.resolveBinding(choices) : cloudSync.resolve(choices),
-      ),
-    bind: () => exclusive(() => cloudSync.bind()),
-    setEnabled: (enabled) => {
-      gameAuto.setEnabled(enabled);
-      gameAuto.request(0);
-    },
-    renameDevice: (name) => exclusive(() => cloudSync.renameDevice(name)),
-    exportLocal: async () =>
-      (
-        await localAPI(
-          "cloud/prepare",
-          { build: document.querySelector('meta[name="dream-build"]')?.content },
-          eventCursor,
-        )
-      ).saveJson,
-    exportCloud: async () => {
-      const owner = gameAuto.user,
-        listing = await siteCloud.list(owner);
-      return (await siteCloud.read(owner, listing.headRevision)).save.saveJson;
-    },
-    exportMergeLocal: async () =>
-      (await localAPI("cloud/export-backup", { kind: "local" }, eventCursor)).saveJson,
-    exportMergeRemote: async () =>
-      (await localAPI("cloud/export-backup", { kind: "remote" }, eventCursor)).saveJson,
-    rollback: () => exclusive(() => cloudSync.rollback()),
-    loadCloud: () => exclusive(() => cloudSync.loadCloud()),
-    restoreRecovery: (id) => exclusive(() => cloudSync.restoreRecovery(id)),
-    update: () =>
-      document.dispatchEvent(new CustomEvent("backmir-update-request", { cancelable: true })),
-    itemName: (item) => itemName(items.get(item.id)),
-    questName: (id) => i18n.entity("quests", id),
-    emailBindingMount: (host) =>
-      accountSession.state.emailLoginAvailable
-        ? mountEmailBinding(host, {
-            user: accountSession.state.user,
-            locale: i18n.locale,
-            onSuccess: () => cloudPanel?.refresh(),
-          })
-        : null,
-    loginMount: async (host) => {
-      const session = await accountSession.refresh();
-      accountTrack("account_view", { source }, true);
-      let completed;
-      const mounted = await mountAccountLogin(host, {
-        locale: i18n.locale,
-        source,
-        track: accountTrack,
-        emailEnabled: session.emailLoginAvailable,
-        googleEnabled: session.googleAvailable,
-        onSuccess: () =>
-          (completed ??= completeGameSignIn(source).catch((error) => {
-            say(error.message);
-            cloudPanel?.refresh();
-          })),
-      });
-      if (mobile)
-        requestAnimationFrame(() => host.scrollIntoView?.({ block: "start", behavior: "smooth" }));
-      return mounted;
-    },
-    onChange: ({ type }) => {
-      if (type === "continue") {
-        panel.dispose();
-        if (cloudPanel === panel) cloudPanel = null;
-        if (cloudPanelWindow === w) cloudPanelWindow = null;
-        w.el.remove();
-      }
-    },
-  });
+  const panel = gistCloud.mount(w.body, { locale: i18n.locale, jobs });
   cloudPanel = panel;
   const cleanup = new MutationObserver(() => {
     if (!w.el.isConnected) {
@@ -546158,7 +546059,7 @@ function bindEntryUI() {
   if (!$("#entry-cloud")) {
     const b = document.createElement("button");
     b.id = "entry-cloud";
-    b.textContent = accountPresentation(accountSession.state, i18n.locale).button;
+    b.textContent = gistCloudMessages(i18n.locale).title;
     b.onclick = cloudAccountWindow;
     $("#entry-saves").after(b);
   }

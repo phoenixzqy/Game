@@ -1,7 +1,27 @@
-/* Excluded online features; local characters and local saves stay available. */
+/* Original account/community services are excluded; Gist cloud saves are available. */
 a[hidden], [data-community-link], [data-account-link],
-#cloud-save, #cloud-account, #entry-cloud, #account-login, #email-binding {
+#cloud-save, #account-login, #email-binding {
   display: none !important;
+}
+.cloud-window { max-width: min(620px, calc(100vw - 24px)); }
+.gist-cloud-panel { color: #e4d5b6; max-height: 65vh; overflow: auto; padding: 8px; text-align: left; }
+.gist-cloud-panel p { line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.gist-cloud-panel label { display: block; margin: 12px 0; }
+.gist-cloud-panel input:not([type="checkbox"]) {
+  display: block; box-sizing: border-box; width: 100%; margin-top: 6px; padding: 8px;
+  color: #f6e6c6; background: #171514; border: 1px solid #8a7046; border-radius: 4px;
+}
+.gist-cloud-panel .gist-cloud-auto { display: flex; align-items: flex-start; gap: 8px; }
+.cloud-window .gist-cloud-panel .gist-cloud-auto input[type="checkbox"] {
+  flex: none; width: 20px; height: 20px; min-height: 0; margin: 4px 0 0; padding: 0;
+}
+.gist-cloud-panel .gist-cloud-auto span { flex: 1; min-width: 0; }
+.gist-cloud-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.gist-cloud-panel button { padding: 8px 12px; min-height: 36px; }
+.gist-cloud-panel button:disabled { opacity: .5; }
+.gist-cloud-panel h3 { font-size: 14px; color: #d4b379; }
+@media (max-width: 600px) {
+  .cloud-window .gist-cloud-panel { max-height: calc(100dvh - 110px); }
 }
 [data-game-account-summary], [data-auto-cloud-status], [data-official-action="cloud"] {
   display: none !important;

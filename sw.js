@@ -1,4 +1,4 @@
-const CACHE = "backmir-classic-pages-6f39fbd667358da9";
+const CACHE = "backmir-classic-pages-933baf5775e066ba";
 const OFFLINE_ASSETS = (function createOfflineAssets({
   storage = globalThis.caches,
   baseURL = globalThis.location?.href,
@@ -333,6 +333,8 @@ const LANGUAGE_ASSETS = {
     ],
   },
   SHELL = [
+    "/Game/site-assets/gist-client.mjs",
+    "/Game/site-assets/gist-cloud.mjs",
     "/Game/assets/webp-codec/encode.js",
     "/Game/assets/webp-codec/encode-worker.js",
     "/Game/assets/webp-codec/meta.js",
