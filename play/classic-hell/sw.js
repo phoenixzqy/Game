@@ -1,4 +1,4 @@
-const CACHE = "backmir-classic-hell-pages-642f506f6d95190a";
+const CACHE = "backmir-classic-hell-pages-8287c74a869f071d";
 const OFFLINE_ASSETS = (function createOfflineAssets({
   storage = globalThis.caches,
   baseURL = globalThis.location?.href,

@@ -1,3 +1,81 @@
+// Legacy sprites encode half-opacity shadows as opaque/transparent checkerboards.
+// Reconstruct only connected dark stippling; keep artwork and atlas frames sharp.
+function restoreSpriteShadowPixels(data, width, height, frames) {
+  let changed = 0;
+  const visited = new Set();
+  for (const frame of Object.values(frames)) {
+    const { sx, sy, width: w, height: h } = frame;
+    const key = `${sx}:${sy}:${w}:${h}`;
+    if (visited.has(key) || w < 3 || h < 3) continue;
+    visited.add(key);
+    if (sx < 0 || sy < 0 || sx + w > width || sy + h > height) continue;
+    const candidate = new Uint8Array(w * h), shadow = new Uint8Array(w * h);
+    const pixel = (x, y) => ((sy + y) * width + sx + x) * 4;
+    const transparent = (x, y) => x < 0 || y < 0 || x >= w || y >= h || data[pixel(x, y) + 3] === 0;
+    const diagonals = (x, y, visit) => {
+      for (const dy of [-1, 1]) for (const dx of [-1, 1]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < w && ny < h) visit(ny * w + nx);
+      }
+    };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const p = pixel(x, y);
+      if (data[p + 3] === 255 && Math.max(data[p], data[p + 1], data[p + 2]) <= 32 &&
+          transparent(x - 1, y) && transparent(x + 1, y) && transparent(x, y - 1) && transparent(x, y + 1)) {
+        candidate[y * w + x] = 1;
+      }
+    }
+    const pending = [];
+    for (let i = 0; i < candidate.length; i++) {
+      if (!candidate[i]) continue;
+      let neighbors = 0;
+      diagonals(i % w, Math.floor(i / w), n => { neighbors += candidate[n]; });
+      if (neighbors >= 3) { shadow[i] = 1; pending.push(i); }
+    }
+    for (let cursor = 0; cursor < pending.length; cursor++) {
+      const i = pending[cursor];
+      diagonals(i % w, Math.floor(i / w), n => {
+        if (candidate[n] && !shadow[n]) { shadow[n] = 1; pending.push(n); }
+      });
+    }
+    if (!pending.length) continue;
+    // Distribute each original shadow pixel's coverage over its four neighbors.
+    // Interior checker cells become alpha 128; boundaries retain lower coverage.
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x, p = pixel(x, y);
+      if (shadow[i]) { data[p + 3] = 128; changed++; continue; }
+      if (data[p + 3] !== 0) continue;
+      let count = 0, red = 0, green = 0, blue = 0;
+      for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h || !shadow[ny * w + nx]) continue;
+        const n = pixel(nx, ny);
+        count++; red += data[n]; green += data[n + 1]; blue += data[n + 2];
+      }
+      if (count) {
+        data[p] = Math.round(red / count); data[p + 1] = Math.round(green / count); data[p + 2] = Math.round(blue / count);
+        data[p + 3] = count * 32; changed++;
+      }
+    }
+  }
+  return changed;
+}
+
+async function decodeSpriteShadows(image, frames) {
+  const canvas = document.createElement('canvas');
+  canvas.width = image.width; canvas.height = image.height;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.drawImage(image, 0, 0);
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+  if (!restoreSpriteShadowPixels(pixels.data, canvas.width, canvas.height, frames)) {
+    canvas.width = canvas.height = 0;
+    return image;
+  }
+  context.putImageData(pixels, 0, 0);
+  const bitmap = await createImageBitmap(canvas);
+  canvas.width = canvas.height = 0;
+  return bitmap;
+}
+
 async function startupJSON(url, timeout = 8000) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController(),
@@ -1187,7 +1265,7 @@ async function ensureSheet(pack, index) {
       const r = await fetch(`./cache/sheets/${pack}/${block}.json`);
       if (!r.ok) throw Error(key);
       const sheet = await r.json();
-      sheet.bitmap = await imageLoad(sheet.image);
+      sheet.bitmap = await decodeSpriteShadows(await imageLoad(sheet.image), sheet.frames);
       sheet.lastUsed = performance.now();
       sheets.set(key, sheet);
       if (sheets.size > 48) {
