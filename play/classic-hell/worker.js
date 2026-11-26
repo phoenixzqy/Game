@@ -8592,7 +8592,7 @@ var swordSkills = [
 ];
 function prepareSword(g, r, spell) {
   const magic = g.skill(r, spell);
-  if (!magic || g.time < magic.s.CastTime) return false;
+  if (!autoBattleBound(magic) || g.time < magic.s.CastTime) return false;
   const cost = magic.d.DreamSkill
     ? skillCost(magic.d, magic.level, r.stats)
     : magic.d.BaseCost + magic.s.Level * magic.d.LevelCost;
@@ -8601,9 +8601,9 @@ function prepareSword(g, r, spell) {
   return true;
 }
 function automaticMeleeSpell(g, r, requested) {
-  if (r.job !== "Warrior" || g.safe(r)) return requested;
+  if (r.job !== "Warrior" || g.safe(r) || r.assist?.autoBattle?.enabled) return requested;
   if (swordSkills.some(([, spell]) => spell === requested)) return requested;
-  for (const [key, spell] of swordSkills) if (r.attackModes[key]) return spell;
+  for (const [key, spell] of swordSkills) if (r.attackModes[key] && autoBattleBound(g.skill(r, spell))) return spell;
   for (const [key, spell] of swordSkills)
     if (r.assist?.[key] && prepareSword(g, r, spell) && r.attackModes[key]) return spell;
   return requested;
@@ -8620,7 +8620,7 @@ function tryAutomaticShield(g, r, targetId = 0) {
   )
     return false;
   const shield = g.skill(r, "MagicShield");
-  if (!shield || g.time < shield.s.CastTime || r.mp < skillCost(shield.d, shield.level, r.stats))
+  if (!autoBattleBound(shield) || g.time < shield.s.CastTime || r.mp < skillCost(shield.d, shield.level, r.stats))
     return false;
   const moving = g.time < Number(r.special?.assistMoveUntil || 0);
   const threatened = g.map(r.map).actors.some((a) => {
@@ -8698,10 +8698,10 @@ function assistTick(g, r) {
     if (targets.length) {
       const spell =
         cfg.autoMagicSpell === "auto"
-          ? AUTO_MAGIC_SPELLS.find((s) => g.skill(r, s))
+          ? AUTO_MAGIC_SPELLS.find((s) => autoBattleBound(g.skill(r, s)))
           : cfg.autoMagicSpell;
       const magic = spell ? g.skill(r, spell) : void 0;
-      if (magic && g.time >= magic.s.CastTime && r.mp >= skillCost(magic.d, magic.level, r.stats)) {
+      if (autoBattleBound(magic) && g.time >= magic.s.CastTime && r.mp >= skillCost(magic.d, magic.level, r.stats)) {
         const target = targets.find(
           (a) => distance(r, a) <= magic.d.Range && canReachDreamSpell(g, r, magic.d.Spell, a),
         );
@@ -16634,6 +16634,1036 @@ var Game7 = class {
     this.npc = 0;
   }
 };
+
+// Shared by the three offline workers and their settings UI.
+var AUTO_BATTLE_SKILLS = {
+  Warrior: [
+    "BloodDragon",
+    "DiamondBody",
+    "ProtectionField",
+    "Rage",
+    "FlamingSword",
+    "BlazingSword",
+    "HalfMoon",
+    "WhirlwindSlash",
+    "Thrusting",
+  ],
+  Wizard: [
+    "MagicShield",
+    "Abyss",
+    "MagicBooster",
+    "FireBall",
+    "GreatFireBall",
+    "ThunderBolt",
+    "FlameDisruptor",
+    "FrostCrunch",
+    "FireBang",
+    "IceStorm",
+    "IceFlame",
+    "ChainThunder",
+    "ThunderStorm",
+    "MeteorStrike",
+    "FireWall",
+    "DragonFlame",
+    "Hydra",
+  ],
+  Taoist: [
+    "BlessedArmour",
+    "SoulShield",
+    "Hiding",
+    "Healing",
+    "MassHealing",
+    "SummonSpiritServant",
+    "SummonSkeleton",
+    "SummonShinsu",
+    "AdvancedSummon",
+    "SummonTiger",
+    "SummonMoonSpirit",
+    "InnateQi",
+    "BeastArmour",
+    "Poisoning",
+    "GhostBurn",
+    "SoulFireBall",
+    "PoisonCloud",
+  ],
+};
+function autoBattleSettings(value) {
+  const strings = (v) =>
+    Array.isArray(v)
+      ? [...new Set(v.filter((x) => typeof x === "string" && x.length <= 80))]
+      : [];
+  const ids = (v) =>
+    Array.isArray(v)
+      ? [...new Set(v.filter((x) => Number.isSafeInteger(x) && x >= 0))]
+      : [];
+  return {
+    enabled: value?.enabled === true,
+    sweep: value?.sweep === true,
+    lootEnabled: value?.lootEnabled === true,
+    skills: Array.isArray(value?.skills) ? strings(value.skills) : null,
+    loot: {
+      gold: value?.loot?.gold !== false,
+      ids: ids(value?.loot?.ids),
+      types: strings(value?.loot?.types),
+      grades: strings(value?.loot?.grades),
+      tiers: ids(value?.loot?.tiers),
+      qualities: strings(value?.loot?.qualities).filter((x) =>
+        ["normal", "exceptional", "goldExceptional"].includes(x),
+      ),
+    },
+  };
+}
+function autoBattleQuality(item, qualityPoints) {
+  const points = qualityPoints(item);
+  return points >= 4
+    ? "goldExceptional"
+    : Object.values(item.added || {}).some((v) => v > 0) || item.affixes?.length
+      ? "exceptional"
+      : "normal";
+}
+function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
+  if (
+    actor.kind !== "item" ||
+    actor.dead ||
+    (chestId !== undefined && actor.item?.id === chestId)
+  )
+    return false;
+  if (actor.gold > 0) return config.gold;
+  const item = actor.item,
+    def = item && defs.get(item.id);
+  return (
+    !!def &&
+    (config.ids.includes(item.id) || config.types.includes(def.Type)) &&
+    config.grades.includes(String(def.Grade || "None")) &&
+    (def.DreamGrade === undefined || config.tiers.includes(def.DreamGrade)) &&
+    config.qualities.includes(autoBattleQuality(item, qualityPoints))
+  );
+}
+
+// Decisions use a fresh simulation snapshot, never browser key events.
+var autoBattleStates = new WeakMap();
+var autoBattleVectors = [
+  [0, -1],
+  [1, -1],
+  [1, 0],
+  [1, 1],
+  [0, 1],
+  [-1, 1],
+  [-1, 0],
+  [-1, -1],
+];
+var autoBattleDistance = (a, b) =>
+  Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+var autoBattleHasBuff = (g, a, type) =>
+  a.buffs.some((b) => b.type === type && b.until > g.time);
+var autoBattleBound = (sk) =>
+  !!sk && Number.isInteger(sk.s.Key) && sk.s.Key >= 1 && sk.s.Key <= 8;
+var AUTO_BATTLE_DAMAGE = [
+  "FireBall",
+  "GreatFireBall",
+  "ThunderBolt",
+  "SoulFireBall",
+  "FlameDisruptor",
+  "FrostCrunch",
+  "FireBang",
+  "IceStorm",
+  "IceFlame",
+  "MeteorStrike",
+  "ThunderStorm",
+  "ChainThunder",
+  "FireWall",
+  "PoisonCloud",
+  "DragonFlame",
+  "Hydra",
+];
+function autoBattleSkill(g, r, cfg, api, spell) {
+  const sk = g.skill(r, spell);
+  if (
+    !autoBattleBound(sk) ||
+    (cfg.skills !== null && !cfg.skills.includes(spell)) ||
+    sk.d.DreamSkill?.passive ||
+    g.rules.adaptations.disabledSpells?.[spell] ||
+    g.time < sk.s.CastTime ||
+    r.mp < api.cost(sk.d, sk.d.DreamSkill ? sk.level : sk.s.Level, r.stats)
+  )
+    return null;
+  if (!sk.d.DreamSkill) {
+    const reagent = {
+      Hiding: [0, 1],
+      BlessedArmour: [0, 1],
+      SoulShield: [0, 1],
+      Poisoning: [0, 1],
+      PoisonCloud: [0, 5],
+      GhostBurn: [0, 1],
+      SummonSkeleton: [0, 1],
+      SummonShinsu: [0, 1],
+      AdvancedSummon: [0, 1],
+    }[spell];
+    if (
+      reagent &&
+      ![...r.equipment, ...r.inventory].some(
+        (i) =>
+          i &&
+          g.defs.get(i.id)?.Type === "Amulet" &&
+          g.defs.get(i.id)?.DreamType !== 17 &&
+          g.defs.get(i.id)?.Shape === reagent[0] &&
+          i.count >= reagent[1],
+      )
+    )
+      return null;
+  }
+  return sk;
+}
+function autoBattlePending(g, r, target, spell) {
+  return g.events.some(
+    (e) =>
+      e.source === r.id &&
+      e.target === target.id &&
+      e.spell === spell &&
+      e.at > g.time,
+  );
+}
+function autoBattleCandidate(
+  sk,
+  target,
+  benefit,
+  priority,
+  api,
+  r,
+  mode = "cast",
+) {
+  const cost = api.cost(sk.d, sk.d.DreamSkill ? sk.level : sk.s.Level, r.stats);
+  return {
+    sk,
+    target,
+    benefit,
+    priority,
+    mode,
+    cost,
+    score: benefit / Math.max(1, cost),
+  };
+}
+function autoBattleBest(candidates) {
+  return candidates
+    .filter((c) => c.benefit > 0)
+    .sort(
+      (a, b) =>
+        a.priority - b.priority ||
+        b.score - a.score ||
+        b.benefit - a.benefit ||
+        a.sk.d.Spell.localeCompare(b.sk.d.Spell) ||
+        (a.target.id || 0) - (b.target.id || 0) ||
+        a.target.y - b.target.y ||
+        a.target.x - b.target.x,
+    )[0];
+}
+function autoBattleBuffCandidates(g, r, cfg, api, spells, priority = 0) {
+  return spells.flatMap((spell) => {
+    const sk = autoBattleSkill(g, r, cfg, api, spell);
+    return sk &&
+      !autoBattleHasBuff(g, r, spell) &&
+      !autoBattlePending(g, r, r, spell)
+      ? [autoBattleCandidate(sk, r, 1, priority, api, r)]
+      : [];
+  });
+}
+function autoBattlePower(r, sk, api, kind = "MC") {
+  // Estimate without consuming the world's RNG or mutating combat state.
+  const raw = ((r.stats["Min" + kind] || 0) + (r.stats["Max" + kind] || 0)) / 2;
+  const meanRng = {
+    next: (max, min = 0) => Math.max(min, (min + Math.max(min, max - 1)) / 2),
+  };
+  return api.damage(
+    sk.d,
+    sk.d.DreamSkill ? sk.level : sk.s.Level,
+    raw,
+    meanRng,
+  );
+}
+function autoBattleUsefulDamage(a, raw, defence = "MAC", context) {
+  let armor = defence.endsWith("NoArmor")
+    ? 0
+    : ((a.stats["Min" + defence] || 0) + (a.stats["Max" + defence] || 0)) / 2;
+  if (context) {
+    const { g, r, api, sk } = context;
+    raw = api.outgoing(g, r, a, raw, sk.d.Spell) + (r.stats.AttackBonus || 0);
+    armor *= 1 - Math.min(100, r.stats.WeakSpotPercent || 0) / 100;
+    const poison = a.buffs.find(
+      (b) => b.type === "DreamPoisonArmour" && b.until > g.time,
+    );
+    if (poison) armor *= 1 - poison.value / 100;
+    if (
+      sk.d.DreamSkill &&
+      (sk.d.Spell === "FlameDisruptor" ||
+        (sk.d.Spell === "SoulFireBall" && sk.level >= 4))
+    )
+      armor *= 0.5;
+    if (sk.d.DreamSkill && sk.d.Spell === "DragonFlame")
+      armor /= Math.max(1, sk.level);
+    if (autoBattleHasBuff(g, a, "Red")) armor *= 0.5;
+  }
+  const dodge = defence.startsWith("MAC")
+    ? a.stats.MagicDodgePercent
+    : a.stats.PhysicalDodgePercent;
+  return Math.min(
+    a.hp,
+    Math.max(0, raw - armor) * (1 - Math.min(100, dodge || 0) / 100),
+  );
+}
+function autoBattleDamageCandidates(
+  g,
+  r,
+  cfg,
+  api,
+  enemies,
+  spells,
+  priority = 6,
+) {
+  const result = [];
+  for (const spell of spells) {
+    if (!AUTO_BATTLE_DAMAGE.includes(spell)) continue;
+    const sk = autoBattleSkill(g, r, cfg, api, spell);
+    if (!sk) continue;
+    const native = !!sk.d.DreamSkill;
+    // Only include implemented models. Legacy spells with different geometry stay manual.
+    const single = [
+      "FireBall",
+      "GreatFireBall",
+      "ThunderBolt",
+      "SoulFireBall",
+      "FlameDisruptor",
+      "FrostCrunch",
+    ].includes(spell);
+    if (!native && !single && !["FireBang", "IceStorm"].includes(spell))
+      continue;
+    let power = autoBattlePower(
+      r,
+      sk,
+      api,
+      ["SoulFireBall", "PoisonCloud"].includes(spell) ? "SC" : "MC",
+    );
+    if (spell === "PoisonCloud" && native)
+      power = Math.trunc(power / ([1, 2, 1.5, 1.2][sk.level] ?? 1));
+    const areaRadius =
+      spell === "DragonFlame"
+        ? 2
+        : [
+              "FireBang",
+              "IceStorm",
+              "IceFlame",
+              "MeteorStrike",
+              "FireWall",
+              "PoisonCloud",
+            ].includes(spell)
+          ? 1
+          : 0;
+    const centers = new Map(enemies.map((a) => [`${a.x},${a.y}`, a]));
+    // Empty tiles can be better AoE centers than any monster's own tile.
+    if (areaRadius)
+      for (const a of enemies.filter(
+        (a) => autoBattleDistance(r, a) <= sk.d.Range + areaRadius,
+      )) {
+        for (let dy = -areaRadius; dy <= areaRadius; dy++)
+          for (let dx = -areaRadius; dx <= areaRadius; dx++) {
+            const x = a.x + dx,
+              y = a.y + dy,
+              key = `${x},${y}`,
+              geom = g.geometry.get(r.map);
+            if (
+              x >= 0 &&
+              y >= 0 &&
+              x < geom.width &&
+              y < geom.height &&
+              !geom.solid[y * geom.width + x] &&
+              !centers.has(key)
+            )
+              centers.set(key, { id: 0, x, y });
+          }
+      }
+    for (const center of centers.values()) {
+      if (
+        autoBattleDistance(r, center) > sk.d.Range ||
+        !api.reach(g, r, spell, center)
+      )
+        continue;
+      let hits = [[center, 1]];
+      if (["FireBang", "IceStorm", "IceFlame", "MeteorStrike"].includes(spell))
+        hits = enemies
+          .filter((a) => autoBattleDistance(a, center) <= 1)
+          .map((a) => [a, spell === "MeteorStrike" ? 3 : 1]);
+      if (spell === "ThunderStorm")
+        hits = enemies
+          .filter((a) => autoBattleDistance(a, r) <= 2)
+          .map((a) => [a, autoBattleDistance(a, r) > 1 ? 0.5 : 1]);
+      if (spell === "ChainThunder") {
+        hits = [[center, 1]];
+        while (hits.length < Math.max(2, sk.level + 1)) {
+          const previous = hits.at(-1)[0];
+          const next = enemies
+            .filter(
+              (a) =>
+                !hits.some(([b]) => a === b) &&
+                autoBattleDistance(a, previous) <= Math.min(4, sk.s.Level + 1),
+            )
+            .sort(
+              (a, b) =>
+                autoBattleDistance(a, previous) -
+                  autoBattleDistance(b, previous) || a.id - b.id,
+            )[0];
+          if (!next) break;
+          hits.push([next, Math.max(0.25, 0.8 ** hits.length)]);
+        }
+      }
+      if (["FireWall", "PoisonCloud", "DragonFlame"].includes(spell)) {
+        const duration =
+          spell === "DragonFlame"
+            ? 3
+            : spell === "PoisonCloud"
+              ? 3 + ((r.stats.MinSC || 0) + (r.stats.MaxSC || 0)) / 20
+              : Math.min(
+                  (((r.stats.MinMC || 0) + (r.stats.MaxMC || 0)) / 2 +
+                    3 * sk.level) *
+                    0.5,
+                  [0, 8, 12, 15, 18, 21, 24][sk.level] ?? 25,
+                );
+        hits = enemies
+          .filter((a) =>
+            spell === "FireWall"
+              ? Math.abs(a.x - center.x) + Math.abs(a.y - center.y) <= 1
+              : autoBattleDistance(a, center) <=
+                (spell === "DragonFlame" ? 2 : 1),
+          )
+          .filter(
+            (a) =>
+              !g
+                .map(r.map)
+                .actors.some(
+                  (f) =>
+                    f.kind === "spell" &&
+                    f.spell === spell &&
+                    f.x === a.x &&
+                    f.y === a.y &&
+                    f.expires > g.time,
+                ) &&
+              !g.events.some(
+                (e) =>
+                  e.spell === spell &&
+                  e.location &&
+                  (spell === "FireWall"
+                    ? Math.abs(e.location.x - a.x) +
+                        Math.abs(e.location.y - a.y) <=
+                      1
+                    : autoBattleDistance(e.location, a) <=
+                      (spell === "DragonFlame" ? 2 : 1)) &&
+                  e.at >= g.time,
+              ),
+          )
+          .map((a) => [a, Math.floor(duration)]);
+      }
+      if (spell === "Hydra") {
+        if (
+          g
+            .map(r.map)
+            .actors.some(
+              (a) =>
+                a.spell === "Hydra" &&
+                a.target === r.id &&
+                !a.dead &&
+                a.expires > g.time,
+            ) ||
+          !autoBattleVectors.some(([dx, dy]) => {
+            const p = { x: center.x + dx, y: center.y + dy };
+            return (
+              autoBattleDistance(r, p) <= sk.d.Range &&
+              g.walkable(r.map, p.x, p.y, r.id) &&
+              api.sight(g, r.map, r, p)
+            );
+          })
+        )
+          continue;
+        const balance = api.hydraStats(sk.d, sk.level);
+        hits = [
+          [
+            center,
+            Math.max(1, Math.floor(balance.durationMs / balance.intervalMs)),
+          ],
+        ];
+      }
+      const benefit = hits.reduce(
+        (sum, [a, multiplier]) =>
+          sum +
+          Math.min(
+            a.hp,
+            autoBattleUsefulDamage(a, power, "MAC", { g, r, api, sk }) *
+              multiplier,
+          ),
+        0,
+      );
+      if (benefit)
+        result.push(autoBattleCandidate(sk, center, benefit, priority, api, r));
+    }
+  }
+  return result;
+}
+function autoBattleContext(g, r, cfg, api) {
+  return {
+    g,
+    r,
+    cfg,
+    api,
+    enemies: g
+      .map(r.map)
+      .actors.filter(
+        (a) =>
+          a.kind === "monster" &&
+          !a.dead &&
+          !a.friendly &&
+          targetableMonster(a),
+      ),
+  };
+}
+function autoBattleRoute(g, r, api, goal, range, state, explore = false) {
+  const geom = g.geometry.get(r.map);
+  const portals = new Set(
+    api.portals(g, r.map).map((p) => p.at[1] * geom.width + p.at[0]),
+  );
+  const key = (x, y) => y * geom.width + x;
+  const start = key(r.x, r.y),
+    queue = [{ x: r.x, y: r.y, first: -1 }],
+    seen = new Set([start]);
+  let fallback = null;
+  const occupied = new Set(
+    g
+      .map(r.map)
+      .actors.filter(
+        (a) =>
+          a.id !== r.id &&
+          !(a.friendly && a.master === r.id) &&
+          !a.dead &&
+          api.visible(a) &&
+          ["monster", "npc"].includes(a.kind),
+      )
+      .map((a) => key(a.x, a.y)),
+  );
+  // Bound work on large maps; approaching goals is retried after a short backoff.
+  for (let i = 0; i < queue.length && i < 12000; i++) {
+    const at = queue[i];
+    if (
+      at.first >= 0 &&
+      (explore
+        ? !state.visited.has(key(at.x, at.y))
+        : autoBattleDistance(at, goal) <= range)
+    )
+      return at.first;
+    if (
+      explore &&
+      at.first >= 0 &&
+      (!fallback || (state.visited.get(key(at.x, at.y)) || 0) < fallback.age)
+    )
+      fallback = {
+        dir: at.first,
+        age: state.visited.get(key(at.x, at.y)) || 0,
+      };
+    for (let dir = 0; dir < 8; dir++) {
+      const [dx, dy] = autoBattleVectors[dir],
+        x = at.x + dx,
+        y = at.y + dy,
+        k = key(x, y);
+      if (
+        x < 0 ||
+        y < 0 ||
+        x >= geom.width ||
+        y >= geom.height ||
+        seen.has(k) ||
+        portals.has(k) ||
+        geom.solid[k] ||
+        occupied.has(k)
+      )
+        continue;
+      seen.add(k);
+      queue.push({ x, y, first: at.first < 0 ? dir : at.first });
+    }
+  }
+  return fallback?.dir ?? -1;
+}
+function autoBattleLoot(g, r, cfg, state, api) {
+  if (!cfg.lootEnabled || g.time < state.lootAt) return;
+  state.lootAt = g.time + 200;
+  const ground = g.map(r.map).actors;
+  for (const a of [...ground]) {
+    if (
+      autoBattleDistance(r, a) > 5 ||
+      !autoBattleAllowsLoot(
+        cfg.loot,
+        a,
+        g.defs,
+        g.rules.adaptations.adventure?.chestId,
+        api.qualityPoints,
+      )
+    )
+      continue;
+    if (a.gold > 0) {
+      r.gold += a.gold;
+      g.emit("GainedGold", { Gold: a.gold });
+    } else if (!g.give(r, a.item)) {
+      state.rejectedLoot.set(a.id, g.time + 3000);
+      continue;
+    }
+    const index = ground.indexOf(a);
+    if (index >= 0) ground.splice(index, 1);
+    state.rejectedLoot.delete(a.id);
+  }
+  for (const [id, until] of state.rejectedLoot)
+    if (until <= g.time) state.rejectedLoot.delete(id);
+}
+function autoBattleTick(g, r, api) {
+  let cfg = r.assist?.autoBattle;
+  if (!cfg) return;
+  let state = autoBattleStates.get(r);
+  if (!state) {
+    cfg = r.assist.autoBattle = autoBattleSettings(cfg);
+    state = {
+      map: r.map,
+      pauseUntil: 0,
+      lootAt: 0,
+      routeAt: 0,
+      visited: new Map(),
+      rejectedLoot: new Map(),
+    };
+    autoBattleStates.set(r, state);
+  }
+  if (r.dead || r.map !== state.map) {
+    cfg.enabled = false;
+    cfg.lootEnabled = false;
+    autoBattleStates.delete(r);
+    return;
+  }
+  if (!g.geometry.has(r.map)) return;
+  if (g.time < state.pauseUntil) return;
+  autoBattleLoot(g, r, cfg, state, api);
+  if (
+    !cfg.enabled ||
+    mountedItem(g, r) ||
+    g.safe(r) ||
+    g.npc ||
+    api.pending(r) ||
+    g.time < Math.max(r.actionAt, r.spellAt) ||
+    r.buffs.some(
+      (b) =>
+        [
+          "Paralysis",
+          "LRParalysis",
+          "Trap",
+          "Frozen",
+          "Shock",
+          "Stun",
+        ].includes(b.type) && b.until > g.time,
+    )
+  )
+    return;
+  const context = autoBattleContext(g, r, cfg, api);
+  const decision = {
+    Warrior: autoBattleWarrior,
+    Wizard: autoBattleWizard,
+    Taoist: autoBattleTaoist,
+  }[r.job]?.(context);
+  if (decision) {
+    if (decision.mode === "melee") {
+      const spell = decision.sk.d.Spell,
+        key = spell[0].toLowerCase() + spell.slice(1);
+      if (!r.attackModes[key]) api.toggle(g, r, spell, true);
+      g.attack(r, decision.target, spell);
+    } else
+      api.cast(g, r, {
+        Spell: decision.sk.d.Spell,
+        TargetID: decision.target.id,
+        Location: { X: decision.target.x, Y: decision.target.y },
+        Direction: api.dirs[r.dir],
+      });
+    return;
+  }
+  const nearest = context.enemies
+    .slice()
+    .sort(
+      (a, b) =>
+        autoBattleDistance(r, a) - autoBattleDistance(r, b) || a.id - b.id,
+    )[0];
+  if (
+    nearest &&
+    r.job === "Warrior" &&
+    autoBattleDistance(r, nearest) <= 1 &&
+    g.time >= r.attackAt
+  ) {
+    g.attack(r, nearest, "None");
+    return;
+  }
+  if (!cfg.sweep || g.time < state.routeAt) return;
+  state.routeAt = g.time + Math.max(200, r.actionAt - g.time);
+  state.visited.set(r.y * g.geometry.get(r.map).width + r.x, g.time);
+  const loot = g
+    .map(r.map)
+    .actors.filter(
+      (a) =>
+        autoBattleAllowsLoot(
+          cfg.loot,
+          a,
+          g.defs,
+          g.rules.adaptations.adventure?.chestId,
+          api.qualityPoints,
+        ) &&
+        cfg.lootEnabled &&
+        (state.rejectedLoot.get(a.id) || 0) <= g.time &&
+        autoBattleDistance(r, a) > 5,
+    )
+    .sort(
+      (a, b) =>
+        autoBattleDistance(r, a) - autoBattleDistance(r, b) || a.id - b.id,
+    )[0];
+  const goal = loot || nearest;
+  const hurtPet =
+    r.job === "Taoist" &&
+    Object.values(g.maps)
+      .flatMap((m) => m.actors)
+      .find(
+        (a) =>
+          a.master === r.id &&
+          a.map === r.map &&
+          !a.dead &&
+          a.hp / a.maxHP < 0.7 &&
+          autoBattleSkill(g, r, cfg, api, "Healing") &&
+          autoBattleDistance(r, a) > g.skill(r, "Healing").d.Range,
+      );
+  const ranged =
+    r.job === "Warrior"
+      ? 1
+      : Math.max(
+          1,
+          ...AUTO_BATTLE_DAMAGE.map(
+            (s) => autoBattleSkill(g, r, cfg, api, s)?.d.Range || 0,
+          ),
+        );
+  // Approach to one tile if already in nominal range but no usable cast exists (e.g. a wall).
+  const range = loot
+    ? 5
+    : goal && autoBattleDistance(r, goal) <= ranged
+      ? 1
+      : ranged;
+  const routeGoal = hurtPet || goal;
+  let dir = routeGoal
+    ? autoBattleRoute(
+        g,
+        r,
+        api,
+        routeGoal,
+        hurtPet ? g.skill(r, "Healing").d.Range : range,
+        state,
+      )
+    : -1;
+  if (routeGoal && dir < 0) state.routeAt = g.time + 1000;
+  if (dir < 0) dir = autoBattleRoute(g, r, api, null, 0, state, true);
+  if (dir >= 0) g.move(r, dir, 1);
+  else state.routeAt = g.time + 1000;
+}
+function installAutoBattle(Game, api) {
+  const tick = Game.prototype.tick,
+    command = Game.prototype.command;
+  Game.prototype.tick = function (ms) {
+    tick.call(this, ms);
+    if (this.me) autoBattleTick(this, this.me, api);
+  };
+  Game.prototype.command = function (type, data = {}) {
+    const r = this.me;
+    if (r && type === "SetAssist") {
+      const cfg = autoBattleSettings(data.autoBattle ?? r.assist?.autoBattle);
+      command.call(this, type, {
+        ...data,
+        ...(cfg.enabled
+          ? {
+              autoMagic: false,
+              autoShield: false,
+              flamingSword: false,
+              blazingSword: false,
+            }
+          : {}),
+      });
+      r.assist.autoBattle = cfg;
+      autoBattleStates.delete(r);
+      autoBattleStates.set(r, {
+        map: r.map,
+        pauseUntil: 0,
+        lootAt: 0,
+        routeAt: 0,
+        visited: new Map(),
+        rejectedLoot: new Map(),
+      });
+      return;
+    }
+    if (
+      r &&
+      [
+        "Walk",
+        "Run",
+        "Attack",
+        "Magic",
+        "SpellToggle",
+        "MapTeleport",
+        "CallNPC",
+        "PickUp",
+        "PetControl",
+        "ToggleMount",
+      ].includes(type)
+    ) {
+      const state = autoBattleStates.get(r);
+      if (state) state.pauseUntil = this.time + 1500;
+    }
+    return command.call(this, type, data);
+  };
+}
+
+function autoBattleWarrior({ g, r, cfg, api, enemies }) {
+  const buffs = autoBattleBuffCandidates(g, r, cfg, api, [
+    "BloodDragon",
+    "DiamondBody",
+    "ProtectionField",
+    "Rage",
+  ]);
+  const candidates = [...buffs];
+  for (const target of enemies.filter((a) => autoBattleDistance(r, a) <= 1)) {
+    if (g.time < r.attackAt) break;
+    for (const spell of [
+      "FlamingSword",
+      "BlazingSword",
+      "HalfMoon",
+      "WhirlwindSlash",
+      "Thrusting",
+    ]) {
+      const sk = autoBattleSkill(g, r, cfg, api, spell);
+      if (!sk) continue;
+      const dir = autoBattleVectors.findIndex(
+        ([x, y]) =>
+          x === Math.sign(target.x - r.x) && y === Math.sign(target.y - r.y),
+      );
+      const raw = ((r.stats.MinDC || 0) + (r.stats.MaxDC || 0)) / 2;
+      const coefficient = sk.d.DreamSkill ? api.coefficient(sk.d, sk.level) : 1;
+      // The primary hit is already available as a free basic attack.
+      let benefit = Math.max(
+        0,
+        autoBattleUsefulDamage(
+          target,
+          raw * (spell.includes("Sword") ? coefficient : 1),
+          "AC",
+          { g, r, api, sk },
+        ) - autoBattleUsefulDamage(target, raw, "AC"),
+      );
+      for (const other of enemies.filter((a) => a !== target)) {
+        const d = autoBattleDistance(r, other),
+          od = autoBattleVectors.findIndex(
+            ([x, y]) =>
+              x === Math.sign(other.x - r.x) && y === Math.sign(other.y - r.y),
+          );
+        if (
+          (spell === "WhirlwindSlash" && d === 1) ||
+          (spell === "HalfMoon" &&
+            d === 1 &&
+            [7, 0, 1, 2, 3].includes((od - dir + 8) % 8)) ||
+          (spell === "Thrusting" && d === 2 && od === dir) ||
+          (spell === "BlazingSword" && d >= 2 && d <= 5 && od === dir)
+        )
+          benefit += autoBattleUsefulDamage(
+            other,
+            raw *
+              coefficient *
+              (spell === "BlazingSword" ? 1 - (d - 1) * 0.1 : 1),
+            spell === "BlazingSword" ? "AC" : "ACNoArmor",
+            { g, r, api, sk },
+          );
+      }
+      candidates.push(
+        autoBattleCandidate(sk, target, benefit, 6, api, r, "melee"),
+      );
+    }
+  }
+  return autoBattleBest(candidates);
+}
+
+function autoBattleWizard({ g, r, cfg, api, enemies }) {
+  return autoBattleBest([
+    ...autoBattleBuffCandidates(g, r, cfg, api, ["MagicShield"]),
+    ...autoBattleBuffCandidates(g, r, cfg, api, ["Abyss", "MagicBooster"], 5),
+    ...autoBattleDamageCandidates(
+      g,
+      r,
+      cfg,
+      api,
+      enemies,
+      AUTO_BATTLE_SKILLS.Wizard,
+    ),
+  ]);
+}
+
+function autoBattleTaoist({ g, r, cfg, api, enemies }) {
+  const candidates = autoBattleBuffCandidates(g, r, cfg, api, [
+    "BlessedArmour",
+    "SoulShield",
+  ]);
+  const pets = Object.values(g.maps)
+    .flatMap((m) => m.actors)
+    .filter((a) => a.master === r.id && a.friendly && !a.dead);
+  const injured = pets.filter(
+    (a) =>
+      a.map === r.map &&
+      a.maxHP > 0 &&
+      a.hp / a.maxHP < 0.7 &&
+      (a.hp +
+        (a.nativeHealing || []).reduce((sum, row) => sum + row.remaining, 0)) /
+        a.maxHP <
+        0.7,
+  );
+  for (const spell of ["Healing", "MassHealing"]) {
+    const sk = autoBattleSkill(g, r, cfg, api, spell);
+    if (!sk) continue;
+    for (const pet of injured) {
+      if (
+        autoBattleDistance(r, pet) > sk.d.Range ||
+        autoBattlePending(g, r, pet, "Healing") ||
+        autoBattlePending(g, r, pet, "MassHealing")
+      )
+        continue;
+      const targets =
+        spell === "Healing"
+          ? [pet]
+          : injured.filter((a) => autoBattleDistance(a, pet) <= 1);
+      const amount = autoBattlePower(r, sk, api, "SC");
+      const benefit = targets.reduce(
+        (n, a) => n + Math.min(a.maxHP - a.hp, amount),
+        0,
+      );
+      candidates.push(autoBattleCandidate(sk, pet, benefit, 1, api, r));
+    }
+  }
+  // The existing game permits one kind per summon family. Choose once per family
+  // to avoid repeatedly replacing different pets with each other.
+  for (const family of [
+    ["SummonSkeleton", "SummonSpiritServant"],
+    ["SummonMoonSpirit", "SummonTiger", "AdvancedSummon", "SummonShinsu"],
+  ]) {
+    const chosen = family.find((spell) => {
+      const sk = g.skill(r, spell);
+      return (
+        autoBattleBound(sk) &&
+        !sk.d.DreamSkill?.passive &&
+        !g.rules.adaptations.disabledSpells?.[spell] &&
+        (cfg.skills === null || cfg.skills.includes(spell))
+      );
+    });
+    if (!chosen) continue;
+    const sk = autoBattleSkill(g, r, cfg, api, chosen);
+    if (!sk) continue;
+    const id =
+      chosen === "SummonTiger" && sk.s.Level >= 4 ? 116 : api.summonIds[chosen];
+    const def = g.rules.monsters.find((m) =>
+      chosen === "SummonSpiritServant"
+        ? m.Index === g.rules.adaptations.noviceProgression?.spiritMonster
+        : m.DreamOriginalId === id,
+    );
+    const stage =
+      chosen === "SummonTiger" && sk.s.Level >= 4
+        ? sk.s.Level - 3
+        : Math.min(3, sk.s.Level);
+    const expected = chosen === "SummonSpiritServant" ? 1 : stage >= 3 ? 2 : 1;
+    const alive = def
+      ? pets.filter((a) => a.definition === def.Index).length
+      : expected;
+    if (
+      alive < expected &&
+      g.freeNear(r.map, r, 3) &&
+      !autoBattlePending(g, r, r, chosen)
+    )
+      candidates.push(autoBattleCandidate(sk, r, expected - alive, 2, api, r));
+  }
+  candidates.push(
+    ...autoBattleBuffCandidates(g, r, cfg, api, ["Hiding"], 3),
+    ...autoBattleBuffCandidates(g, r, cfg, api, ["InnateQi"], 5),
+  );
+  for (const spell of ["Poisoning", "GhostBurn"]) {
+    const sk = autoBattleSkill(g, r, cfg, api, spell);
+    if (!sk) continue;
+    for (const target of enemies) {
+      const profile = api.profile(g, target);
+      const remaining = (percent) =>
+        1 - Math.max(0, Math.min(100, percent || 0)) / 100;
+      const chance = remaining(
+        profile?.statusAvoidPercent?.[spell === "Poisoning" ? "Green" : spell],
+      );
+      const poisonFactor =
+        remaining(target.stats.PoisonDodgePercent) *
+        remaining(target.stats.PoisonRecoveryPercent);
+      if (
+        autoBattleDistance(r, target) > sk.d.Range ||
+        autoBattleHasBuff(g, target, spell === "Poisoning" ? "Green" : spell) ||
+        autoBattlePending(g, r, target, spell) ||
+        !chance ||
+        (spell === "Poisoning" && (profile?.poisonImmune || !poisonFactor))
+      )
+        continue;
+      const benefit =
+        spell === "Poisoning"
+          ? Math.min(
+              target.hp,
+              api.poison(sk.level, r.stats) *
+                (20 +
+                  7 * sk.level +
+                  ((r.stats.MinSC || 0) + (r.stats.MaxSC || 0))) *
+                poisonFactor *
+                chance,
+            )
+          : Math.max(
+              1,
+              ((((target.stats.MinDC || 0) + (target.stats.MaxDC || 0)) / 2) *
+                (3 + 2 * sk.level)) /
+                100,
+            ) * chance;
+      candidates.push(autoBattleCandidate(sk, target, benefit, 4, api, r));
+    }
+  }
+  const beast = autoBattleSkill(g, r, cfg, api, "BeastArmour");
+  if (
+    beast &&
+    pets.some(
+      (a) =>
+        g.monsters.get(a.definition)?.DreamOriginalId === 62 &&
+        !a.special?.nativeBeastArmourRank,
+    )
+  )
+    candidates.push(autoBattleCandidate(beast, r, 1, 5, api, r));
+  candidates.push(
+    ...autoBattleDamageCandidates(g, r, cfg, api, enemies, [
+      "SoulFireBall",
+      "PoisonCloud",
+    ]),
+  );
+  return autoBattleBest(candidates);
+}
+
+installAutoBattle(Game7, {
+  cast: castMagic,
+  toggle: toggleMagic,
+  cost: skillCost,
+  damage: magicDamage,
+  coefficient: dreamCoefficient,
+  poison: poisoningDamage,
+  outgoing: dreamOutgoing,
+  dirs,
+  reach: canReachDreamSpell,
+  portals: activePortals,
+  summonIds,
+  sight: hydraSight,
+  hydraStats,
+  visible: visibleMonster,
+  qualityPoints: exceptionalPoints,
+  profile: monsterCombatProfile,
+  pending: (r) => manualCasts.has(r) || queuedHydras.has(r),
+});
 
 // singleplayer/core/affixes.ts
 var spells = [

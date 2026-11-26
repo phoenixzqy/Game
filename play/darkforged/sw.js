@@ -1,4 +1,4 @@
-const CACHE = "backmir-darkforged-pages-933baf5775e066ba";
+const CACHE = "backmir-darkforged-pages-04b183e1713ab271";
 const OFFLINE_ASSETS = (function createOfflineAssets({
   storage = globalThis.caches,
   baseURL = globalThis.location?.href,

@@ -538873,6 +538873,465 @@ function openAssist() {
   };
 }
 
+// Shared by the three offline workers and their settings UI.
+var AUTO_BATTLE_SKILLS = {
+  Warrior: [
+    "BloodDragon",
+    "DiamondBody",
+    "ProtectionField",
+    "Rage",
+    "FlamingSword",
+    "BlazingSword",
+    "HalfMoon",
+    "WhirlwindSlash",
+    "Thrusting",
+  ],
+  Wizard: [
+    "MagicShield",
+    "Abyss",
+    "MagicBooster",
+    "FireBall",
+    "GreatFireBall",
+    "ThunderBolt",
+    "FlameDisruptor",
+    "FrostCrunch",
+    "FireBang",
+    "IceStorm",
+    "IceFlame",
+    "ChainThunder",
+    "ThunderStorm",
+    "MeteorStrike",
+    "FireWall",
+    "DragonFlame",
+    "Hydra",
+  ],
+  Taoist: [
+    "BlessedArmour",
+    "SoulShield",
+    "Hiding",
+    "Healing",
+    "MassHealing",
+    "SummonSpiritServant",
+    "SummonSkeleton",
+    "SummonShinsu",
+    "AdvancedSummon",
+    "SummonTiger",
+    "SummonMoonSpirit",
+    "InnateQi",
+    "BeastArmour",
+    "Poisoning",
+    "GhostBurn",
+    "SoulFireBall",
+    "PoisonCloud",
+  ],
+};
+function autoBattleSettings(value) {
+  const strings = (v) =>
+    Array.isArray(v)
+      ? [...new Set(v.filter((x) => typeof x === "string" && x.length <= 80))]
+      : [];
+  const ids = (v) =>
+    Array.isArray(v)
+      ? [...new Set(v.filter((x) => Number.isSafeInteger(x) && x >= 0))]
+      : [];
+  return {
+    enabled: value?.enabled === true,
+    sweep: value?.sweep === true,
+    lootEnabled: value?.lootEnabled === true,
+    skills: Array.isArray(value?.skills) ? strings(value.skills) : null,
+    loot: {
+      gold: value?.loot?.gold !== false,
+      ids: ids(value?.loot?.ids),
+      types: strings(value?.loot?.types),
+      grades: strings(value?.loot?.grades),
+      tiers: ids(value?.loot?.tiers),
+      qualities: strings(value?.loot?.qualities).filter((x) =>
+        ["normal", "exceptional", "goldExceptional"].includes(x),
+      ),
+    },
+  };
+}
+function autoBattleQuality(item, qualityPoints) {
+  const points = qualityPoints(item);
+  return points >= 4
+    ? "goldExceptional"
+    : Object.values(item.added || {}).some((v) => v > 0) || item.affixes?.length
+      ? "exceptional"
+      : "normal";
+}
+function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
+  if (
+    actor.kind !== "item" ||
+    actor.dead ||
+    (chestId !== undefined && actor.item?.id === chestId)
+  )
+    return false;
+  if (actor.gold > 0) return config.gold;
+  const item = actor.item,
+    def = item && defs.get(item.id);
+  return (
+    !!def &&
+    (config.ids.includes(item.id) || config.types.includes(def.Type)) &&
+    config.grades.includes(String(def.Grade || "None")) &&
+    (def.DreamGrade === undefined || config.tiers.includes(def.DreamGrade)) &&
+    config.qualities.includes(autoBattleQuality(item, qualityPoints))
+  );
+}
+
+function autoBattleCopy() {
+  const texts = {
+    "zh-CN": [
+      "自动战斗",
+      "启用自动战斗",
+      "自动扫图（仅当前地图）",
+      "自动拾取（5格内）",
+      "技能",
+      "只释放已绑定 F1–F8 的技能。先维持生存和召唤，再按预计有效总伤害 ÷ 实际耗蓝选择伤害技能。",
+      "未绑定",
+      "拾取过滤器",
+      "金币",
+      "物品类别",
+      "基础稀有度",
+      "装备阶级",
+      "极品品质",
+      "普通",
+      "极品",
+      "金色极品",
+      "搜索完整物品目录",
+      "全部类别",
+      "选择搜索结果",
+      "取消搜索结果",
+      "上一页",
+      "下一页",
+      "已选择",
+      "过滤配置导入／导出",
+      "导出",
+      "导入",
+      "配置无效",
+      "保存并应用",
+      "已保存",
+      "停止战斗",
+      "手动操作后暂停1.5秒；死亡或换图后停止战斗。喝药仍在辅助窗口配置。",
+      "物品须匹配名称或类别，同时满足稀有度、阶级和极品品质。默认不拾取装备。背包放不下时保留掉落。",
+      "金币和药水预设",
+      "状态",
+      "开启",
+      "关闭",
+      "绑定技能全选",
+      "清空技能选择",
+    ],
+    en: [
+      "Auto battle",
+      "Enable auto battle",
+      "Sweep current map",
+      "Auto loot within 5 tiles",
+      "Skills",
+      "Only skills bound to F1–F8 can cast. Survival and summons take priority; damage skills maximize estimated useful damage / actual mana cost.",
+      "Unbound",
+      "Loot filter",
+      "Gold",
+      "Item categories",
+      "Base rarity",
+      "Equipment tiers",
+      "Exceptional quality",
+      "Normal",
+      "Exceptional",
+      "Golden exceptional",
+      "Search the full item catalog",
+      "All categories",
+      "Select search results",
+      "Clear search results",
+      "Previous",
+      "Next",
+      "Selected",
+      "Import / export filter",
+      "Export",
+      "Import",
+      "Invalid configuration",
+      "Save and apply",
+      "Saved",
+      "Stop battle",
+      "Manual input pauses for 1.5 seconds. Death or map changes stop battle. Configure potions in Assist.",
+      "Items must match a name or category AND the selected rarity, tier and exceptional quality. No equipment is picked up by default. Full bags leave drops on the ground.",
+      "Gold and potions preset",
+      "Status",
+      "On",
+      "Off",
+      "Select bound skills",
+      "Clear skills",
+    ],
+    es: [
+      "Combate automático",
+      "Activar combate automático",
+      "Explorar el mapa actual",
+      "Recoger en un radio de 5 casillas",
+      "Habilidades",
+      "Solo se lanzan habilidades asignadas a F1–F8. Supervivencia e invocaciones tienen prioridad; el daño se elige según daño útil estimado / coste real de maná.",
+      "Sin tecla",
+      "Filtro de objetos",
+      "Oro",
+      "Categorías",
+      "Rareza base",
+      "Nivel del equipo",
+      "Calidad excepcional",
+      "Normal",
+      "Excepcional",
+      "Excepcional dorado",
+      "Buscar en todos los objetos",
+      "Todas las categorías",
+      "Seleccionar resultados",
+      "Quitar resultados",
+      "Anterior",
+      "Siguiente",
+      "Seleccionados",
+      "Importar / exportar filtro",
+      "Exportar",
+      "Importar",
+      "Configuración inválida",
+      "Guardar y aplicar",
+      "Guardado",
+      "Detener combate",
+      "El control manual pausa 1,5 segundos. Morir o cambiar de mapa detiene el combate. Configura pociones en Ayuda.",
+      "Debe coincidir el nombre o categoría Y la rareza, nivel y calidad seleccionados. Por defecto no se recoge equipo. Si la bolsa está llena, el objeto permanece en el suelo.",
+      "Preajuste de oro y pociones",
+      "Estado",
+      "Activo",
+      "Inactivo",
+      "Seleccionar habilidades con tecla",
+      "Quitar habilidades",
+    ],
+  };
+  return texts[i18n.locale] || texts.en;
+}
+function openAutoBattle() {
+  if (!state?.me) return;
+  cancelControl();
+  const role = state.me,
+    cfg = autoBattleSettings(role.assist?.autoBattle),
+    t = autoBattleCopy();
+  const w = makeWindow("auto-battle", t[0], "assist-window auto-battle-window");
+  if (!$("#auto-battle-style")) {
+    const style = document.createElement("style");
+    style.id = "auto-battle-style";
+    style.textContent =
+      ".auto-battle-window{width:min(680px,94vw)!important;max-height:85vh}.auto-battle-window .body{max-height:72vh;overflow:auto;padding:12px!important;font:14px/1.5 system-ui}.auto-battle-window label{display:inline-flex;align-items:center;gap:5px;margin:4px 12px 4px 0}.auto-battle-window input[type=checkbox]{width:18px;height:18px}.auto-battle-window input[type=search],.auto-battle-window textarea{width:100%;box-sizing:border-box}.auto-battle-window textarea{min-height:90px}.auto-battle-window button{min-height:36px;padding:4px 10px;margin:4px}.auto-battle-window .auto-loot-list label{display:flex;min-height:30px}.auto-battle-window fieldset{margin:10px 0;padding:8px;border:1px solid #888}.auto-battle-window .auto-battle-controls{display:flex;flex-wrap:wrap;gap:6px}.auto-battle-window .auto-loot-list{max-height:260px;overflow:auto}";
+    document.head.append(style);
+  }
+  const check = (name, label, on) =>
+    `<label><input type="checkbox" data-auto-option="${name}" ${on ? "checked" : ""}>${esc(label)}</label>`;
+  const field = (name, title, values, selected) =>
+    `<fieldset><legend>${esc(title)}</legend>${values.map(([value, label]) => `<label><input type="checkbox" data-auto-filter="${name}" value="${esc(String(value))}" ${selected.includes(value) ? "checked" : ""}>${esc(String(label))}</label>`).join("")}</fieldset>`;
+  const catalog = [...items.values()].sort(
+    (a, b) => i18n.item(a).localeCompare(i18n.item(b)) || a.Index - b.Index,
+  );
+  const types = [...new Set(catalog.map((d) => d.Type))].sort();
+  const gradeLabels =
+    i18n.locale === "zh-CN"
+      ? {
+          None: "无稀有度",
+          Common: "普通",
+          Rare: "稀有",
+          Heroic: "英雄",
+          Legendary: "传奇",
+          Mythical: "神话",
+        }
+      : i18n.locale === "es"
+        ? {
+            None: "Sin rareza",
+            Common: "Común",
+            Rare: "Raro",
+            Heroic: "Heroico",
+            Legendary: "Legendario",
+            Mythical: "Mítico",
+          }
+        : {};
+  const grades = [
+    ...new Set(catalog.map((d) => String(d.Grade || "None"))),
+  ].sort();
+  const tiers = [
+    ...new Set(catalog.map((d) => d.DreamGrade).filter(Number.isFinite)),
+  ].sort((a, b) => a - b);
+  const known = role.skills.filter(
+    (sk) =>
+      (AUTO_BATTLE_SKILLS[role.job] || []).includes(sk.Spell) &&
+      !sk.Info?.DreamSkill?.passive,
+  );
+  const selectedSkills = new Set(
+    cfg.skills ??
+      known.filter((s) => s.Key >= 1 && s.Key <= 8).map((s) => s.Spell),
+  );
+  const selectedItems = new Set(cfg.loot.ids);
+  w.body.innerHTML = `<p>${esc(t[30])}</p><div class="auto-battle-controls">${check("enabled", t[1], cfg.enabled)}${check("sweep", t[2], cfg.sweep)}${check("lootEnabled", t[3], cfg.lootEnabled)}<button data-auto-stop>${esc(t[29])}</button></div><fieldset><legend>${esc(t[4])} · ${esc(jobs[role.job])}</legend><p>${esc(t[5])}</p><button data-skills-all>${esc(t[36])}</button><button data-skills-none>${esc(t[37])}</button><div>${known.map((sk) => `<label><input type="checkbox" data-auto-skill="${esc(sk.Spell)}" ${selectedSkills.has(sk.Spell) ? "checked" : ""} ${sk.Key >= 1 && sk.Key <= 8 ? "" : "disabled"}>${esc(skillName(sk.Spell, sk.Spell))} (${sk.Key >= 1 && sk.Key <= 8 ? "F" + sk.Key : esc(t[6])})</label>`).join("")}</div></fieldset><h3>${esc(t[7])}</h3><p>${esc(t[31])}</p>${check("gold", t[8], cfg.loot.gold)}<button data-loot-preset>${esc(t[32])}</button>${field(
+    "types",
+    t[9],
+    types.map((x) => [x, i18n.enum("ItemType", x)]),
+    cfg.loot.types,
+  )}${field(
+    "grades",
+    t[10],
+    grades.map((x) => [x, gradeLabels[x] || x]),
+    cfg.loot.grades,
+  )}${field(
+    "tiers",
+    t[11],
+    tiers.map((x) => [x, x]),
+    cfg.loot.tiers,
+  )}${field(
+    "qualities",
+    t[12],
+    [
+      ["normal", t[13]],
+      ["exceptional", t[14]],
+      ["goldExceptional", t[15]],
+    ],
+    cfg.loot.qualities,
+  )}<label>${esc(t[16])}<input type="search" data-loot-search></label><select data-loot-category aria-label="${esc(t[9])}"><option value="">${esc(t[17])}</option>${types.map((x) => `<option value="${esc(x)}">${esc(i18n.enum("ItemType", x))}</option>`).join("")}</select><div><button data-loot-select>${esc(t[18])}</button><button data-loot-clear>${esc(t[19])}</button></div><div class="auto-loot-list"></div><button data-loot-prev>${esc(t[20])}</button><button data-loot-next>${esc(t[21])}</button><span data-loot-count role="status"></span><details><summary>${esc(t[23])}</summary><textarea data-loot-json aria-label="${esc(t[23])}"></textarea><button data-loot-export>${esc(t[24])}</button><button data-loot-import>${esc(t[25])}</button></details><button data-auto-save>${esc(t[27])}</button><span data-auto-status role="status"></span>`;
+  const q = (s) => w.body.querySelector(s);
+  let page = 0;
+  const matches = () => {
+    const search = q("[data-loot-search]").value.trim().toLocaleLowerCase();
+    const type = q("[data-loot-category]").value;
+    return catalog.filter(
+      (d) =>
+        (!type || d.Type === type) &&
+        (!search ||
+          `${i18n.item(d)} ${d.Index}`.toLocaleLowerCase().includes(search)),
+    );
+  };
+  const render = () => {
+    const found = matches(),
+      pages = Math.max(1, Math.ceil(found.length / 60));
+    page = Math.min(page, pages - 1);
+    q(".auto-loot-list").innerHTML = found
+      .slice(page * 60, page * 60 + 60)
+      .map(
+        (d) =>
+          `<label><input type="checkbox" data-loot-id="${d.Index}" ${selectedItems.has(d.Index) ? "checked" : ""}>${esc(i18n.item(d))} · #${d.Index}</label>`,
+      )
+      .join("");
+    q("[data-loot-prev]").disabled = page === 0;
+    q("[data-loot-next]").disabled = page === pages - 1;
+    q("[data-loot-count]").textContent =
+      `${t[22]}: ${selectedItems.size} · ${found.length} · ${page + 1}/${pages}`;
+  };
+  q(".auto-loot-list").onchange = (e) => {
+    const id = Number(e.target.dataset.lootId);
+    if (e.target.checked) selectedItems.add(id);
+    else selectedItems.delete(id);
+    render();
+  };
+  for (const sel of ["[data-loot-search]", "[data-loot-category]"])
+    q(sel).oninput = () => {
+      page = 0;
+      render();
+    };
+  q("[data-loot-prev]").onclick = () => {
+    page--;
+    render();
+  };
+  q("[data-loot-next]").onclick = () => {
+    page++;
+    render();
+  };
+  q("[data-loot-select]").onclick = () => {
+    matches().forEach((d) => selectedItems.add(d.Index));
+    render();
+  };
+  q("[data-loot-clear]").onclick = () => {
+    matches().forEach((d) => selectedItems.delete(d.Index));
+    render();
+  };
+  q("[data-skills-all]").onclick = () =>
+    w.body
+      .querySelectorAll("[data-auto-skill]:not(:disabled)")
+      .forEach((n) => (n.checked = true));
+  q("[data-skills-none]").onclick = () =>
+    w.body
+      .querySelectorAll("[data-auto-skill]")
+      .forEach((n) => (n.checked = false));
+  q("[data-loot-preset]").onclick = () => {
+    selectedItems.clear();
+    w.body.querySelectorAll("[data-auto-filter]").forEach((n) => {
+      n.checked = n.dataset.autoFilter !== "types" || n.value === "Potion";
+    });
+    q('[data-auto-option="gold"]').checked = true;
+    render();
+  };
+  const filter = () =>
+    Object.fromEntries(
+      ["types", "grades", "tiers", "qualities"]
+        .map((name) => [
+          name,
+          [
+            ...w.body.querySelectorAll(`[data-auto-filter="${name}"]:checked`),
+          ].map((n) => (name === "tiers" ? Number(n.value) : n.value)),
+        ])
+        .concat([
+          ["ids", [...selectedItems]],
+          ["gold", q('[data-auto-option="gold"]').checked],
+        ]),
+    );
+  q("[data-loot-export]").onclick = () =>
+    (q("[data-loot-json]").value = JSON.stringify(filter(), null, 2));
+  q("[data-loot-import]").onclick = () => {
+    try {
+      const raw = JSON.parse(q("[data-loot-json]").value);
+      if (
+        !raw ||
+        !["ids", "types", "grades", "tiers", "qualities"].every((k) =>
+          Array.isArray(raw[k]),
+        ) ||
+        typeof raw.gold !== "boolean"
+      )
+        throw Error("Invalid filter");
+      const next = autoBattleSettings({ loot: raw }).loot;
+      selectedItems.clear();
+      next.ids.forEach((id) => selectedItems.add(id));
+      w.body
+        .querySelectorAll("[data-auto-filter]")
+        .forEach(
+          (n) =>
+            (n.checked = next[n.dataset.autoFilter].includes(
+              n.dataset.autoFilter === "tiers" ? Number(n.value) : n.value,
+            )),
+        );
+      q('[data-auto-option="gold"]').checked = next.gold;
+      render();
+      q("[data-auto-status]").textContent = "";
+    } catch {
+      q("[data-auto-status]").textContent = t[26];
+    }
+  };
+  const save = async (stop = false) => {
+    if (state.me?.id !== role.id) return;
+    const next = autoBattleSettings({
+      enabled: !stop && q('[data-auto-option="enabled"]').checked,
+      sweep: q('[data-auto-option="sweep"]').checked,
+      lootEnabled: q('[data-auto-option="lootEnabled"]').checked,
+      skills: [
+        ...w.body.querySelectorAll("[data-auto-skill]:checked:not(:disabled)"),
+      ].map((n) => n.dataset.autoSkill),
+      loot: filter(),
+    });
+    const ok = await command("SetAssist", {
+      ...state.me.assist,
+      autoBattle: next,
+    });
+    if (ok && document.contains(w.body)) {
+      q("[data-auto-status]").textContent = t[28];
+      q('[data-auto-option="enabled"]').checked = next.enabled;
+    }
+  };
+  q("[data-auto-save]").onclick = () => save();
+  q("[data-auto-stop]").onclick = () => save(true);
+  render();
+}
+const autoBattleLaunch = document.createElement("button");
+autoBattleLaunch.id = "auto-battle-launch";
+autoBattleLaunch.textContent = autoBattleCopy()[0];
+autoBattleLaunch.onclick = openAutoBattle;
+utilityActionHost().append(autoBattleLaunch);
+
 
 const assistButton = document.createElement("button");
 assistButton.id = "assist-launch";
