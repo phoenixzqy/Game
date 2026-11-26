@@ -4120,6 +4120,17 @@ function installV2(ctx, hooks) {
       },
       "assist",
     );
+    const autoBattle = $("#auto-battle-launch");
+    if (autoBattle)
+      tile(
+        autoBattle.textContent,
+        "",
+        () => {
+          closeHub();
+          autoBattle.click();
+        },
+        "attack",
+      );
     tile(
       t("pet"),
       "",
