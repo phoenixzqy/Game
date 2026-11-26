@@ -21,7 +21,8 @@ let locale = document.documentElement.lang || "zh-CN",
   checking,
   started = false,
   dismissed,
-  publishedCache;
+  publishedCache,
+  checkedAt = -Infinity;
 let state = { status: "checking", latest: null, cache: null };
 const subscribers = new Set();
 const labels = () =>
@@ -143,8 +144,11 @@ async function register() {
   void offer(reg.waiting || reg.active);
   return reg;
 }
-export function checkGameUpdate() {
+export function checkGameUpdate(force = false) {
   if (checking) return checking;
+  if (force !== true && Date.now() - checkedAt < 60_000)
+    return Promise.resolve();
+  checkedAt = Date.now();
   checking = (async () => {
     const controller = new AbortController(),
       timer = setTimeout(() => controller.abort(), 8000);
@@ -236,12 +240,9 @@ export function installGameUpdates(language, actions) {
   window.addEventListener("focus", () => {
     if (!document.hidden) void checkGameUpdate();
   });
-  setInterval(
-    () => {
-      if (!document.hidden) void checkGameUpdate();
-    },
-    5 * 60 * 1000,
-  );
+  setInterval(() => {
+    if (!document.hidden) void checkGameUpdate();
+  }, 60_000);
   void checkGameUpdate();
 }
 export function mountUpdateStatus(rootElement, language) {
@@ -306,7 +307,7 @@ function installed(worker) {
 export async function applyGameUpdate(language) {
   locale = language || locale;
   if (!navigator.serviceWorker) throw Error(labels().unsupported);
-  await checkGameUpdate();
+  await checkGameUpdate(true);
   const reg = await register();
   await reg.update();
   await installed(reg.installing);

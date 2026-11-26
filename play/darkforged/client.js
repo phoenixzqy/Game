@@ -544371,6 +544371,8 @@ function openAssist(tab = "general") {
   w.el.showAssistTab(tab);
 }
 
+var AUTO_BATTLE_FILTER = { game: "darkforged", kind: "dx" };
+
 // Shared by the three offline workers and their settings UI.
 var AUTO_BATTLE_SKILLS = {
   Warrior: [
@@ -544423,7 +544425,28 @@ var AUTO_BATTLE_SKILLS = {
     "PoisonCloud",
   ],
 };
+function autoBattleLootOptions(catalog) {
+  const all = [...catalog];
+  return {
+    ids: all.map((d) => d.Index),
+    types: [...new Set(all.map((d) => d.Type))],
+    rarities:
+      AUTO_BATTLE_FILTER.kind === "dx"
+        ? ["normal", "magic", "rare", "set", "legendary", "native"]
+        : Array.from({ length: 9 }, (_, n) => String(n)),
+    levels: [
+      ...new Set([0, ...all.map((d) => d.DreamGrade).filter(Number.isFinite)]),
+    ].sort((a, b) => a - b),
+    attributes:
+      AUTO_BATTLE_FILTER.kind === "dx"
+        ? ["plain", "affixed"]
+        : ["ordinary", "exceptional"],
+  };
+}
 function autoBattleSettings(value, catalog = [], migrateDefaults = true) {
+  const all = [...catalog],
+    options = autoBattleLootOptions(all),
+    raw = value?.loot;
   const strings = (v) =>
     Array.isArray(v)
       ? [...new Set(v.filter((x) => typeof x === "string" && x.length <= 80))]
@@ -544432,60 +544455,99 @@ function autoBattleSettings(value, catalog = [], migrateDefaults = true) {
     Array.isArray(v)
       ? [...new Set(v.filter((x) => Number.isSafeInteger(x) && x >= 0))]
       : [];
-  const all = [...catalog];
-  const options = {
-    ids: all.map((d) => d.Index),
-    types: [...new Set(all.map((d) => d.Type))],
-    grades: [...new Set(all.map((d) => String(d.Grade || "None")))],
-    tiers: [...new Set(all.map((d) => d.DreamGrade).filter(Number.isFinite))],
-    qualities: ["normal", "exceptional", "goldExceptional"],
-  };
-  const raw = value?.loot;
-  // The old untouched template contained five empty arrays and enabled gold.
   const initial =
     !raw ||
     (migrateDefaults &&
       raw.version === undefined &&
       raw.gold !== false &&
-      Object.keys(options).every(
+      ["ids", "types", "grades", "tiers", "qualities"].every(
         (k) => Array.isArray(raw[k]) && !raw[k].length,
       ));
+  const current = raw?.version === 3 && raw.game === AUTO_BATTLE_FILTER.game;
   const selected = (key) => {
-    if (initial || (raw.version === 2 && !Array.isArray(raw[key])))
-      return options[key];
-    const selected =
-      key === "ids" || key === "tiers" ? ids(raw[key]) : strings(raw[key]);
-    return selected.filter((x) => options[key].includes(x));
+    if (initial || !Array.isArray(raw?.[key])) return options[key];
+    // Old rarity/quality concepts do not describe the actual items. Reset only
+    // those gates; preserve the player's item and category exclusions.
+    if (!current && !["ids", "types"].includes(key)) return options[key];
+    return (
+      key === "ids" || key === "levels" ? ids(raw[key]) : strings(raw[key])
+    ).filter((x) => options[key].includes(x));
   };
   const loot = Object.fromEntries(
     Object.keys(options).map((key) => [key, selected(key)]),
   );
-  if (!initial && raw.version !== 2) {
-    // Expand the old ID-or-category union before switching to independent gates.
+  if (!initial && raw.version === undefined) {
     loot.ids = all
       .filter((d) => loot.ids.includes(d.Index) || loot.types.includes(d.Type))
       .map((d) => d.Index);
     loot.types = options.types;
   }
+  // Imported settings from another game cannot map arbitrary catalog IDs.
+  if (raw?.version === 3 && !current) Object.assign(loot, options);
+  const bound = (v, fallback) =>
+    Number.isSafeInteger(v) && v >= 0 && v <= 65535 ? v : fallback;
   return {
     enabled: value?.enabled === true,
     sweep: value?.sweep === true,
     lootEnabled: value?.lootEnabled === true,
     skills: Array.isArray(value?.skills) ? strings(value.skills) : null,
     loot: {
-      version: 2,
+      version: 3,
+      game: AUTO_BATTLE_FILTER.game,
       gold: raw?.gold !== false,
       ...loot,
+      minLevel: current ? bound(raw.minLevel, 0) : 0,
+      maxLevel: current ? bound(raw.maxLevel, 65535) : 65535,
     },
   };
 }
-function autoBattleQuality(item, qualityPoints) {
-  const points = qualityPoints(item);
-  return points >= 4
-    ? "goldExceptional"
-    : Object.values(item.added || {}).some((v) => v > 0) || item.affixes?.length
-      ? "exceptional"
-      : "normal";
+// Match the native tooltip's [exceptional attributes] section, independently of
+// the star count (basic attack/defence bonuses alone only contribute stars).
+var autoBattleBasicStats = new Set([
+  "MinDC",
+  "MaxDC",
+  "MinMC",
+  "MaxMC",
+  "MinSC",
+  "MaxSC",
+  "MinAC",
+  "MaxAC",
+  "MinMAC",
+  "MaxMAC",
+  "HP",
+  "MP",
+  "Accuracy",
+  "Agility",
+  "AttackSpeed",
+  "Luck",
+  "Holy",
+  "Light",
+  "PoisonAttack",
+  "Freezing",
+  "MagicResist",
+  "PoisonResist",
+  "HealthRecovery",
+  "SpellRecovery",
+  "PoisonRecovery",
+  "BagWeight",
+  "WearWeight",
+  "HandWeight",
+  "Durability",
+  "MaxDurability",
+]);
+function autoBattleExceptional(item, def) {
+  if (item.affixes?.length) return true;
+  return [
+    ...new Set([
+      ...Object.keys(def.Stats || {}),
+      ...Object.keys(item.added || {}),
+    ]),
+  ].some(
+    (k) =>
+      !autoBattleBasicStats.has(k) &&
+      !k.startsWith("GemTier") &&
+      !!((def.Stats?.[k] || 0) + (item.added?.[k] || 0)),
+  );
 }
 function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
   if (
@@ -544497,14 +544559,30 @@ function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
   if (actor.gold > 0) return config.gold;
   const item = actor.item,
     def = item && defs.get(item.id);
+  if (!def || !config.ids.includes(item.id) || !config.types.includes(def.Type))
+    return false;
+  // Rarity, level and attributes describe equipment, never supplies/materials.
+  if (!itemSlots(def)?.length) return true;
+  if (config.game === "darkforged") {
+    const rarity = item.dx ? item.dx.rarity : "native";
+    const level = item.dx ? item.dx.ilvl : def.DreamGrade || 0;
+    const affixed = item.dx
+      ? item.dx.affixes?.length > 0
+      : autoBattleExceptional(item, def);
+    return (
+      config.rarities.includes(rarity) &&
+      level >= config.minLevel &&
+      level <= config.maxLevel &&
+      config.attributes.includes(affixed ? "affixed" : "plain")
+    );
+  }
+  const stars = Math.max(0, Math.min(8, Math.floor(qualityPoints(item))));
   return (
-    !!def &&
-    (config.version === 2
-      ? config.ids.includes(item.id) && config.types.includes(def.Type)
-      : config.ids.includes(item.id) || config.types.includes(def.Type)) &&
-    config.grades.includes(String(def.Grade || "None")) &&
-    (def.DreamGrade === undefined || config.tiers.includes(def.DreamGrade)) &&
-    config.qualities.includes(autoBattleQuality(item, qualityPoints))
+    config.rarities.includes(String(stars)) &&
+    config.levels.includes(def.DreamGrade || 0) &&
+    config.attributes.includes(
+      autoBattleExceptional(item, def) ? "exceptional" : "ordinary",
+    )
   );
 }
 
@@ -544614,7 +544692,7 @@ function autoBattleCopy() {
       "已保存",
       "停止战斗",
       "手动操作后暂停1.5秒；死亡或换图后停止战斗。喝药仍在辅助窗口配置。",
-      "默认全部拾取。取消物品、类别、稀有度、阶级或品质即可排除；所有条件须同时满足。目录仅包含当前游戏物品。背包放不下时保留掉落。",
+      "默认全部拾取。装备须同时满足物品、类别、稀有度、等级和属性条件；星级与极品属性分别判断。配置仅用于当前游戏。金币及材料／补给包裹物品在5格内自动拾取，不受过滤器限制。背包放不下时保留掉落。",
       "金币和药水预设",
       "状态",
       "开启",
@@ -544655,7 +544733,7 @@ function autoBattleCopy() {
       "Saved",
       "Stop battle",
       "Manual input pauses for 1.5 seconds. Death or map changes stop battle. Configure potions in Assist.",
-      "All items are selected by default. Uncheck items, categories, rarities, tiers or qualities to exclude them; all conditions must match. The catalog belongs to the current game. Full bags leave drops on the ground.",
+      "All items are selected by default. Equipment must match every filter; stars and exceptional attributes are independent. Settings belong to this game. Gold and supplies/materials auto-collect within 5 tiles regardless of filters. Full bags leave drops on the ground.",
       "Gold and potions preset",
       "Status",
       "On",
@@ -544696,7 +544774,7 @@ function autoBattleCopy() {
       "Guardado",
       "Detener combate",
       "El control manual pausa 1,5 segundos. Morir o cambiar de mapa detiene el combate. Configura pociones en Ayuda.",
-      "Todos los objetos están seleccionados por defecto. Desmarca objetos, categorías, rarezas, niveles o calidades para excluirlos; deben cumplir todos los filtros. El catálogo corresponde al juego actual. Si la bolsa está llena, el objeto permanece en el suelo.",
+      "Todos los objetos están seleccionados por defecto. El equipo debe cumplir todos los filtros; estrellas y atributos se evalúan por separado. La configuración pertenece a este juego. Oro y materiales/suministros se recogen a 5 casillas sin filtros. Si la bolsa está llena, el objeto permanece.",
       "Preajuste de oro y pociones",
       "Estado",
       "Activo",
@@ -544730,32 +544808,70 @@ function openAutoBattle() {
     (a, b) => i18n.item(a).localeCompare(i18n.item(b)) || a.Index - b.Index,
   );
   const types = [...new Set(catalog.map((d) => d.Type))].sort();
-  const gradeLabels =
-    i18n.locale === "zh-CN"
-      ? {
-          None: "无稀有度",
-          Common: "普通",
-          Rare: "稀有",
-          Heroic: "英雄",
-          Legendary: "传奇",
-          Mythical: "神话",
-        }
-      : i18n.locale === "es"
-        ? {
-            None: "Sin rareza",
-            Common: "Común",
-            Rare: "Raro",
-            Heroic: "Heroico",
-            Legendary: "Legendario",
-            Mythical: "Mítico",
-          }
-        : {};
-  const grades = [
-    ...new Set(catalog.map((d) => String(d.Grade || "None"))),
-  ].sort();
-  const tiers = [
-    ...new Set(catalog.map((d) => d.DreamGrade).filter(Number.isFinite)),
-  ].sort((a, b) => a - b);
+  const options = autoBattleLootOptions(catalog),
+    dx = AUTO_BATTLE_FILTER.kind === "dx";
+  const local = (zh, en, es) =>
+    i18n.locale === "zh-CN" ? zh : i18n.locale === "es" ? es : en;
+  const equipmentFilters =
+    field(
+      "rarities",
+      dx
+        ? local("装备稀有度", "Equipment rarity", "Rareza del equipo")
+        : local("稀有星级", "Rarity stars", "Estrellas de rareza"),
+      options.rarities.map((x) => [
+        x,
+        dx
+          ? x === "native"
+            ? local("旧版装备", "Legacy equipment", "Equipo antiguo")
+            : i18n.t("dx.rarity." + x)
+          : i18n.t("quality." + x) +
+            " " +
+            (Number(x) ? "★".repeat(Number(x)) : "☆"),
+      ]),
+      cfg.loot.rarities,
+    ) +
+    (dx
+      ? `<fieldset><legend>${esc(local("物品等级", "Item level", "Nivel del objeto"))}</legend><label>${esc(local("最低", "Minimum", "Mínimo"))}<input type="number" data-auto-level="minLevel" min="0" max="65535" value="${cfg.loot.minLevel}"></label><label>${esc(local("最高", "Maximum", "Máximo"))}<input type="number" data-auto-level="maxLevel" min="0" max="65535" value="${cfg.loot.maxLevel}"></label></fieldset>`
+      : field(
+          "levels",
+          local("物品等级", "Item level", "Nivel del objeto"),
+          options.levels.map((x) => [x, x || i18n.t("gear.noGrade")]),
+          cfg.loot.levels,
+        )) +
+    field(
+      "attributes",
+      dx
+        ? local("装备词缀", "Equipment affixes", "Afijos del equipo")
+        : local(
+            "极品属性",
+            "Exceptional attributes",
+            "Atributos excepcionales",
+          ),
+      dx
+        ? [
+            ["plain", local("无词缀", "No affixes", "Sin afijos")],
+            ["affixed", local("带词缀", "Has affixes", "Con afijos")],
+          ]
+        : [
+            [
+              "ordinary",
+              local(
+                "无极品属性",
+                "No exceptional attributes",
+                "Sin atributos excepcionales",
+              ),
+            ],
+            [
+              "exceptional",
+              local(
+                "带极品属性",
+                "Has exceptional attributes",
+                "Con atributos excepcionales",
+              ),
+            ],
+          ],
+      cfg.loot.attributes,
+    );
   const known = role.skills.filter(
     (sk) =>
       (AUTO_BATTLE_SKILLS[role.job] || []).includes(sk.Spell) &&
@@ -544771,26 +544887,7 @@ function openAutoBattle() {
     t[9],
     types.map((x) => [x, autoBattleTypeName(x)]),
     cfg.loot.types,
-  )}${field(
-    "grades",
-    t[10],
-    grades.map((x) => [x, gradeLabels[x] || x]),
-    cfg.loot.grades,
-  )}${field(
-    "tiers",
-    t[11],
-    tiers.map((x) => [x, x]),
-    cfg.loot.tiers,
-  )}${field(
-    "qualities",
-    t[12],
-    [
-      ["normal", t[13]],
-      ["exceptional", t[14]],
-      ["goldExceptional", t[15]],
-    ],
-    cfg.loot.qualities,
-  )}<label>${esc(t[16])}<input type="search" data-loot-search></label><select data-loot-category aria-label="${esc(t[9])}"><option value="">${esc(t[17])}</option>${types.map((x) => `<option value="${esc(x)}">${esc(autoBattleTypeName(x))}</option>`).join("")}</select><div><button data-loot-select>${esc(t[18])}</button><button data-loot-clear>${esc(t[19])}</button></div><div class="auto-loot-list"></div><button data-loot-prev>${esc(t[20])}</button><button data-loot-next>${esc(t[21])}</button><span data-loot-count role="status"></span><details><summary>${esc(t[23])}</summary><textarea data-loot-json aria-label="${esc(t[23])}"></textarea><button data-loot-export>${esc(t[24])}</button><button data-loot-import>${esc(t[25])}</button></details><button data-auto-save>${esc(t[27])}</button><span data-auto-status role="status"></span>`;
+  )}${equipmentFilters}<label>${esc(t[16])}<input type="search" data-loot-search></label><select data-loot-category aria-label="${esc(t[9])}"><option value="">${esc(t[17])}</option>${types.map((x) => `<option value="${esc(x)}">${esc(autoBattleTypeName(x))}</option>`).join("")}</select><div><button data-loot-select>${esc(t[18])}</button><button data-loot-clear>${esc(t[19])}</button></div><div class="auto-loot-list"></div><button data-loot-prev>${esc(t[20])}</button><button data-loot-next>${esc(t[21])}</button><span data-loot-count role="status"></span><details><summary>${esc(t[23])}</summary><textarea data-loot-json aria-label="${esc(t[23])}"></textarea><button data-loot-export>${esc(t[24])}</button><button data-loot-import>${esc(t[25])}</button></details><button data-auto-save>${esc(t[27])}</button><span data-auto-status role="status"></span>`;
   const q = (s) => w.body.querySelector(s);
   let page = 0;
   const matches = () => {
@@ -544851,6 +544948,10 @@ function openAutoBattle() {
   resetLoot.textContent = t[38];
   q("[data-loot-preset]").after(resetLoot);
   resetLoot.onclick = () => {
+    if (dx) {
+      q('[data-auto-level="minLevel"]').value = 0;
+      q('[data-auto-level="maxLevel"]').value = 65535;
+    }
     selectedItems.clear();
     catalog.forEach((d) => selectedItems.add(d.Index));
     w.body
@@ -544880,15 +544981,28 @@ function openAutoBattle() {
   };
   const filter = () =>
     Object.fromEntries(
-      ["types", "grades", "tiers", "qualities"]
+      ["types", "rarities", "levels", "attributes"]
         .map((name) => [
           name,
-          [
-            ...w.body.querySelectorAll(`[data-auto-filter="${name}"]:checked`),
-          ].map((n) => (name === "tiers" ? Number(n.value) : n.value)),
+          dx && name === "levels"
+            ? cfg.loot.levels
+            : [
+                ...w.body.querySelectorAll(
+                  `[data-auto-filter="${name}"]:checked`,
+                ),
+              ].map((n) => (name === "levels" ? Number(n.value) : n.value)),
         ])
         .concat([
-          ["version", 2],
+          ["version", 3],
+          ["game", AUTO_BATTLE_FILTER.game],
+          [
+            "minLevel",
+            dx ? Number(q('[data-auto-level="minLevel"]').value) : 0,
+          ],
+          [
+            "maxLevel",
+            dx ? Number(q('[data-auto-level="maxLevel"]').value) : 65535,
+          ],
           ["ids", [...selectedItems]],
           ["gold", q('[data-auto-option="gold"]').checked],
         ]),
@@ -544900,11 +545014,20 @@ function openAutoBattle() {
       const raw = JSON.parse(q("[data-loot-json]").value);
       if (
         !raw ||
-        !["ids", "types", "grades", "tiers", "qualities"].every((k) =>
-          Array.isArray(raw[k]),
-        ) ||
+        !(
+          raw.version === 3
+            ? ["ids", "types", "rarities", "levels", "attributes"]
+            : ["ids", "types", "grades", "tiers", "qualities"]
+        ).every((k) => Array.isArray(raw[k])) ||
         typeof raw.gold !== "boolean" ||
-        (raw.version !== undefined && raw.version !== 2)
+        (raw.version !== undefined && raw.version !== 2 && raw.version !== 3) ||
+        (raw.version === 3 &&
+          (raw.game !== AUTO_BATTLE_FILTER.game ||
+            !Number.isSafeInteger(raw.minLevel) ||
+            !Number.isSafeInteger(raw.maxLevel) ||
+            raw.minLevel < 0 ||
+            raw.maxLevel > 65535 ||
+            raw.minLevel > raw.maxLevel))
       )
         throw Error("Invalid filter");
       const next = autoBattleSettings(
@@ -544912,6 +545035,9 @@ function openAutoBattle() {
         items.values(),
         false,
       ).loot;
+      if (dx)
+        for (const key of ["minLevel", "maxLevel"])
+          q(`[data-auto-level="${key}"]`).value = next[key];
       selectedItems.clear();
       next.ids.forEach((id) => selectedItems.add(id));
       w.body
@@ -544919,7 +545045,7 @@ function openAutoBattle() {
         .forEach(
           (n) =>
             (n.checked = next[n.dataset.autoFilter].includes(
-              n.dataset.autoFilter === "tiers" ? Number(n.value) : n.value,
+              n.dataset.autoFilter === "levels" ? Number(n.value) : n.value,
             )),
         );
       q('[data-auto-option="gold"]').checked = next.gold;
@@ -544931,6 +545057,18 @@ function openAutoBattle() {
   };
   const save = async (stop = false) => {
     if (state.me?.id !== role.id) return;
+    const selected = filter();
+    if (
+      dx &&
+      (!Number.isSafeInteger(selected.minLevel) ||
+        !Number.isSafeInteger(selected.maxLevel) ||
+        selected.minLevel < 0 ||
+        selected.maxLevel > 65535 ||
+        selected.minLevel > selected.maxLevel)
+    ) {
+      q("[data-auto-status]").textContent = t[26];
+      return;
+    }
     const next = autoBattleSettings(
       {
         enabled: !stop && q('[data-auto-option="enabled"]').checked,
@@ -544941,7 +545079,7 @@ function openAutoBattle() {
             "[data-auto-skill]:checked:not(:disabled)",
           ),
         ].map((n) => n.dataset.autoSkill),
-        loot: filter(),
+        loot: selected,
       },
       items.values(),
     );

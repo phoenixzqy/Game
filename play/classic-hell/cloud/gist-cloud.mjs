@@ -4,7 +4,7 @@ const messages = {
   'zh-CN': {
     title: 'GitHub 云存档', token: 'GitHub Token', gist: 'Gist ID（可选，留空自动查找或创建）',
     help: '在 GitHub 设置 → Developer settings → Personal access tokens 创建 token：classic 勾选 gist，或 fine-grained 开启 Gists 读写。无需仓库权限。Token 保存在此浏览器，直到删除或替换。',
-    save: '保存 / 替换 Token', forget: '删除 Token', auto: '自动备份（进度变化时上传，最多每 10 秒一次）',
+    save: '保存 / 替换 Token', forget: '删除 Token', auto: '自动备份（进度变化时上传，最多每分钟一次）',
     sync: '立即同步', backup: '下载本地备份', local: '本地存档时间（UTC）', cloud: '云端存档时间（UTC）',
     policy: '每次启动自动同步，按 UTC 进度时间选择最新存档并覆盖较旧的一方。时间相同则不覆盖。',
     empty: '暂无角色', ready: '已保存 Token', tokenMissing: '请输入并保存自己的 GitHub Token。',
@@ -21,7 +21,7 @@ const messages = {
   en: {
     title: 'GitHub cloud saves', token: 'GitHub Token', gist: 'Gist ID (optional; discover or create automatically)',
     help: 'Create a token in GitHub Settings → Developer settings → Personal access tokens: select gist for classic tokens, or Gists read/write for fine-grained tokens. No repository permission needed. This browser keeps the token until you delete or replace it.',
-    save: 'Save / replace token', forget: 'Delete token', auto: 'Auto backup (changed progress only, at most once every 10 seconds)',
+    save: 'Save / replace token', forget: 'Delete token', auto: 'Auto backup (changed progress only, at most once every minute)',
     sync: 'Sync now', backup: 'Download local backup', local: 'Local save time (UTC)', cloud: 'Cloud save time (UTC)',
     policy: 'Every startup syncs automatically. The newest UTC progress timestamp replaces the older save. Equal timestamps leave both saves unchanged.',
     empty: 'No characters', ready: 'Token saved', tokenMissing: 'Enter and save your own GitHub token.', busy: 'Working…',
@@ -37,7 +37,7 @@ const messages = {
   es: {
     title: 'Partidas en GitHub', token: 'Token de GitHub', gist: 'Gist ID (opcional; buscar o crear automáticamente)',
     help: 'Crea un token en GitHub Settings → Developer settings → Personal access tokens: gist para classic, o Gists con lectura/escritura para fine-grained. No requiere permisos de repositorio. El navegador guarda el token hasta que lo borres o reemplaces.',
-    save: 'Guardar / reemplazar token', forget: 'Borrar token', auto: 'Copia automática (solo cambios, como máximo cada 10 segundos)',
+    save: 'Guardar / reemplazar token', forget: 'Borrar token', auto: 'Copia automática (solo cambios, como máximo cada minuto)',
     sync: 'Sincronizar ahora', backup: 'Descargar copia local', local: 'Fecha local (UTC)', cloud: 'Fecha en la nube (UTC)',
     policy: 'Cada inicio sincroniza automáticamente. La fecha UTC de progreso más reciente reemplaza la partida anterior. Fechas iguales no cambian las partidas.',
     empty: 'Sin personajes', ready: 'Token guardado', tokenMissing: 'Introduce y guarda tu token de GitHub.', busy: 'Procesando…',
@@ -70,6 +70,7 @@ export function createGistCloud({ game, prepare, preview, restore, onSyncState =
   const scope = config => config.revision + ':' + config.gistId;
   let busy = false, syncing = false, started = false, disposed = false, task = null;
   let status = { code: client.config().token ? 'ready' : 'tokenMissing' };
+  let autoAttemptAt = -Infinity;
   let retryAt = 0, suspendedRevision = null, syncedScope = null, localTime = null, cloudTime = null;
   const emit = (code, until = 0) => { status = { code, until }; for (const fn of listeners) fn(); };
   const record = () => { try { return JSON.parse(client.storage.getItem(recordKey)) || {}; } catch { return {}; } };
@@ -83,6 +84,7 @@ export function createGistCloud({ game, prepare, preview, restore, onSyncState =
   }
   function run(action, reconcile = false) {
     if (task) return task;
+    autoAttemptAt = Date.now();
     busy = true; syncing = reconcile; emit('busy');
     if (reconcile) onSyncState(true, status);
     task = (async () => {
@@ -136,7 +138,7 @@ export function createGistCloud({ game, prepare, preview, restore, onSyncState =
   }
   async function upload(automatic = false) {
     const config = client.config();
-    if (automatic && (!started || !config.token || config.auto === false || Date.now() < retryAt || suspendedRevision === config.revision)) return;
+    if (automatic && (Date.now() - autoAttemptAt < 60_000 || !started || !config.token || config.auto === false || Date.now() < retryAt || suspendedRevision === config.revision)) return;
     // A failed startup read must never let a stale local save overwrite the cloud.
     if (syncedScope !== scope(config)) return sync();
     return run(async () => {
@@ -164,11 +166,11 @@ export function createGistCloud({ game, prepare, preview, restore, onSyncState =
   async function tick() {
     const config = client.config();
     if (!started || disposed || busy || !config.token || document.visibilityState !== 'visible' ||
-      navigator.onLine === false || Date.now() < retryAt || suspendedRevision === config.revision) return;
+      navigator.onLine === false || Date.now() < retryAt || Date.now() - autoAttemptAt < 60_000 || suspendedRevision === config.revision) return;
     if (syncedScope !== scope(config)) await sync();
     else if (config.auto !== false) await upload(true);
   }
-  const timer = setInterval(() => void tick(), 10_000);
+  const timer = setInterval(() => void tick(), 60_000);
   const online = () => void tick();
   globalThis.addEventListener('online', online);
   const pagehide = event => { if (!event.persisted) dispose(); };

@@ -5772,7 +5772,7 @@ function us(e, t, a) {
 function spiritGrowth(e, t) {
   const skill = e.skill(t, "SummonSpiritServant");
   const a = { ...e.rules.adaptations.noviceProgression.spiritGrowth,
-    cap: summonPetCap(skill?.level || 1, t.stats["PetLevel:SummonSpiritServant"] || 0) };
+    cap: summonPetCap(skill?.level || 1, t.stats["PetLevel:SummonSpiritServant"] || 0, skill?.d || e.rules.skills.find((d) => d.Spell === "SummonSpiritServant")) };
   zt(t, a);
   const i = (t.spiritProgress ??= {
     level: 0,
@@ -7085,7 +7085,7 @@ function Qs(e, t, a, i) {
           7,
           s + Math.max(0, i - n) + (o === 116 ? 3 : 0) + (t.stats["PetLevel:" + a.Spell] || 0),
         ),
-    y = summonPetCap(i, t.stats["PetLevel:" + a.Spell] || 0);
+    y = summonPetCap(i, t.stats["PetLevel:" + a.Spell] || 0, a);
   for (const f of h)
     ((f.special.petLevel = Math.max(g, Number(f.special.petLevel || 0))),
       (f.special.maxPetLevel = y),
@@ -13747,7 +13747,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
           P(r, a) > 5 ||
           (a.expires && a.expires <= this.time) ||
           a.item?.id === this.rules.adaptations.adventure.chestId ||
-          (!a.gold && !["Potion", "ExperienceScroll"].includes(this.defs.get(a.item?.id)?.Type))
+          (!a.gold && (!this.defs.has(a.item?.id) || isBagEquipment(this.defs.get(a.item.id)) || this.defs.get(a.item.id).Type === "Quest"))
         ) return true;
         return !this.transferGroundLoot(r, a);
       });
@@ -17223,9 +17223,13 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
   };
 
 // Summon growth is based on effective spell rank; earned levels and XP are preserved.
-function summonPetCap(level, bonus = 0) {
+function summonPetCap(level, bonus = 0, definition) {
+  const singleRank =
+    definition?.DreamBookProgression && definition.DreamRanks?.length === 1;
   return (
-    1 + 2 * Math.max(1, Math.trunc(Number(level) || 1)) + Math.max(0, bonus)
+    1 +
+    2 * (Math.max(1, Math.trunc(Number(level) || 1)) + (singleRank ? 2 : 0)) +
+    Math.max(0, bonus)
   );
 }
 function refreshSummonLevelCap(g, pet) {
@@ -17265,8 +17269,11 @@ function refreshSummonLevelCap(g, pet) {
     pet.special.maxPetLevel = summonPetCap(
       skill.level,
       owner.stats["PetLevel:" + spell] || 0,
+      skill.d,
     );
 }
+
+var AUTO_BATTLE_FILTER = { game: "classic", kind: "native" };
 
 // Shared by the three offline workers and their settings UI.
 var AUTO_BATTLE_SKILLS = {
@@ -17320,7 +17327,28 @@ var AUTO_BATTLE_SKILLS = {
     "PoisonCloud",
   ],
 };
+function autoBattleLootOptions(catalog) {
+  const all = [...catalog];
+  return {
+    ids: all.map((d) => d.Index),
+    types: [...new Set(all.map((d) => d.Type))],
+    rarities:
+      AUTO_BATTLE_FILTER.kind === "dx"
+        ? ["normal", "magic", "rare", "set", "legendary", "native"]
+        : Array.from({ length: 9 }, (_, n) => String(n)),
+    levels: [
+      ...new Set([0, ...all.map((d) => d.DreamGrade).filter(Number.isFinite)]),
+    ].sort((a, b) => a - b),
+    attributes:
+      AUTO_BATTLE_FILTER.kind === "dx"
+        ? ["plain", "affixed"]
+        : ["ordinary", "exceptional"],
+  };
+}
 function autoBattleSettings(value, catalog = [], migrateDefaults = true) {
+  const all = [...catalog],
+    options = autoBattleLootOptions(all),
+    raw = value?.loot;
   const strings = (v) =>
     Array.isArray(v)
       ? [...new Set(v.filter((x) => typeof x === "string" && x.length <= 80))]
@@ -17329,60 +17357,99 @@ function autoBattleSettings(value, catalog = [], migrateDefaults = true) {
     Array.isArray(v)
       ? [...new Set(v.filter((x) => Number.isSafeInteger(x) && x >= 0))]
       : [];
-  const all = [...catalog];
-  const options = {
-    ids: all.map((d) => d.Index),
-    types: [...new Set(all.map((d) => d.Type))],
-    grades: [...new Set(all.map((d) => String(d.Grade || "None")))],
-    tiers: [...new Set(all.map((d) => d.DreamGrade).filter(Number.isFinite))],
-    qualities: ["normal", "exceptional", "goldExceptional"],
-  };
-  const raw = value?.loot;
-  // The old untouched template contained five empty arrays and enabled gold.
   const initial =
     !raw ||
     (migrateDefaults &&
       raw.version === undefined &&
       raw.gold !== false &&
-      Object.keys(options).every(
+      ["ids", "types", "grades", "tiers", "qualities"].every(
         (k) => Array.isArray(raw[k]) && !raw[k].length,
       ));
+  const current = raw?.version === 3 && raw.game === AUTO_BATTLE_FILTER.game;
   const selected = (key) => {
-    if (initial || (raw.version === 2 && !Array.isArray(raw[key])))
-      return options[key];
-    const selected =
-      key === "ids" || key === "tiers" ? ids(raw[key]) : strings(raw[key]);
-    return selected.filter((x) => options[key].includes(x));
+    if (initial || !Array.isArray(raw?.[key])) return options[key];
+    // Old rarity/quality concepts do not describe the actual items. Reset only
+    // those gates; preserve the player's item and category exclusions.
+    if (!current && !["ids", "types"].includes(key)) return options[key];
+    return (
+      key === "ids" || key === "levels" ? ids(raw[key]) : strings(raw[key])
+    ).filter((x) => options[key].includes(x));
   };
   const loot = Object.fromEntries(
     Object.keys(options).map((key) => [key, selected(key)]),
   );
-  if (!initial && raw.version !== 2) {
-    // Expand the old ID-or-category union before switching to independent gates.
+  if (!initial && raw.version === undefined) {
     loot.ids = all
       .filter((d) => loot.ids.includes(d.Index) || loot.types.includes(d.Type))
       .map((d) => d.Index);
     loot.types = options.types;
   }
+  // Imported settings from another game cannot map arbitrary catalog IDs.
+  if (raw?.version === 3 && !current) Object.assign(loot, options);
+  const bound = (v, fallback) =>
+    Number.isSafeInteger(v) && v >= 0 && v <= 65535 ? v : fallback;
   return {
     enabled: value?.enabled === true,
     sweep: value?.sweep === true,
     lootEnabled: value?.lootEnabled === true,
     skills: Array.isArray(value?.skills) ? strings(value.skills) : null,
     loot: {
-      version: 2,
+      version: 3,
+      game: AUTO_BATTLE_FILTER.game,
       gold: raw?.gold !== false,
       ...loot,
+      minLevel: current ? bound(raw.minLevel, 0) : 0,
+      maxLevel: current ? bound(raw.maxLevel, 65535) : 65535,
     },
   };
 }
-function autoBattleQuality(item, qualityPoints) {
-  const points = qualityPoints(item);
-  return points >= 4
-    ? "goldExceptional"
-    : Object.values(item.added || {}).some((v) => v > 0) || item.affixes?.length
-      ? "exceptional"
-      : "normal";
+// Match the native tooltip's [exceptional attributes] section, independently of
+// the star count (basic attack/defence bonuses alone only contribute stars).
+var autoBattleBasicStats = new Set([
+  "MinDC",
+  "MaxDC",
+  "MinMC",
+  "MaxMC",
+  "MinSC",
+  "MaxSC",
+  "MinAC",
+  "MaxAC",
+  "MinMAC",
+  "MaxMAC",
+  "HP",
+  "MP",
+  "Accuracy",
+  "Agility",
+  "AttackSpeed",
+  "Luck",
+  "Holy",
+  "Light",
+  "PoisonAttack",
+  "Freezing",
+  "MagicResist",
+  "PoisonResist",
+  "HealthRecovery",
+  "SpellRecovery",
+  "PoisonRecovery",
+  "BagWeight",
+  "WearWeight",
+  "HandWeight",
+  "Durability",
+  "MaxDurability",
+]);
+function autoBattleExceptional(item, def) {
+  if (item.affixes?.length) return true;
+  return [
+    ...new Set([
+      ...Object.keys(def.Stats || {}),
+      ...Object.keys(item.added || {}),
+    ]),
+  ].some(
+    (k) =>
+      !autoBattleBasicStats.has(k) &&
+      !k.startsWith("GemTier") &&
+      !!((def.Stats?.[k] || 0) + (item.added?.[k] || 0)),
+  );
 }
 function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
   if (
@@ -17394,14 +17461,30 @@ function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
   if (actor.gold > 0) return config.gold;
   const item = actor.item,
     def = item && defs.get(item.id);
+  if (!def || !config.ids.includes(item.id) || !config.types.includes(def.Type))
+    return false;
+  // Rarity, level and attributes describe equipment, never supplies/materials.
+  if (!itemSlots(def)?.length) return true;
+  if (config.game === "darkforged") {
+    const rarity = item.dx ? item.dx.rarity : "native";
+    const level = item.dx ? item.dx.ilvl : def.DreamGrade || 0;
+    const affixed = item.dx
+      ? item.dx.affixes?.length > 0
+      : autoBattleExceptional(item, def);
+    return (
+      config.rarities.includes(rarity) &&
+      level >= config.minLevel &&
+      level <= config.maxLevel &&
+      config.attributes.includes(affixed ? "affixed" : "plain")
+    );
+  }
+  const stars = Math.max(0, Math.min(8, Math.floor(qualityPoints(item))));
   return (
-    !!def &&
-    (config.version === 2
-      ? config.ids.includes(item.id) && config.types.includes(def.Type)
-      : config.ids.includes(item.id) || config.types.includes(def.Type)) &&
-    config.grades.includes(String(def.Grade || "None")) &&
-    (def.DreamGrade === undefined || config.tiers.includes(def.DreamGrade)) &&
-    config.qualities.includes(autoBattleQuality(item, qualityPoints))
+    config.rarities.includes(String(stars)) &&
+    config.levels.includes(def.DreamGrade || 0) &&
+    config.attributes.includes(
+      autoBattleExceptional(item, def) ? "exceptional" : "ordinary",
+    )
   );
 }
 
@@ -17787,6 +17870,37 @@ function autoBattleContext(g, r, cfg, api) {
       ),
   };
 }
+function autoBattleDodge(context, state) {
+  const { g, r, api, enemies } = context;
+  if (!["Wizard", "Taoist"].includes(r.job) || g.time < (state.dodgeAt || 0))
+    return false;
+  const danger = (p) =>
+    enemies.filter((a) => autoBattleDistance(p, a) <= 1).length;
+  const distance = (p) =>
+    Math.min(...enemies.map((a) => autoBattleDistance(p, a)));
+  const current = danger(r);
+  if (!current) return false;
+  const portals = api.portals(g, r.map);
+  const choices = autoBattleVectors
+    .map(([dx, dy], dir) => ({ x: r.x + dx, y: r.y + dy, dir }))
+    .filter(
+      (p) =>
+        g.walkable(r.map, p.x, p.y, r.id) &&
+        !portals.some(
+          (portal) => portal.at[0] === p.x && portal.at[1] === p.y,
+        ) &&
+        (danger(p) < current ||
+          (danger(p) === current && distance(p) > distance(r))),
+    )
+    .sort(
+      (a, b) =>
+        danger(a) - danger(b) || distance(b) - distance(a) || a.dir - b.dir,
+    );
+  if (!choices.length) return false;
+  // Do not let a following monster starve spells on every ready frame.
+  state.dodgeAt = g.time + 1500;
+  return g.move(r, choices[0].dir, 1);
+}
 function autoBattleRoute(g, r, api, goal, range, state, explore = false) {
   const geom = g.geometry.get(r.map);
   const portals = new Set(
@@ -18006,6 +18120,7 @@ function autoBattleTick(g, r, api) {
   }
   if (!cfg.enabled) return;
   const context = autoBattleContext(g, r, cfg, api);
+  if (autoBattleDodge(context, state)) return;
   const decision = {
     Warrior: autoBattleWarrior,
     Wizard: autoBattleWizard,
