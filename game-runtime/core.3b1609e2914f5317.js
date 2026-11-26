@@ -15234,7 +15234,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
         e.master !== t.id ||
         t.dead ||
         e.map !== t.map ||
-        P(e, t) <= 10 ||
+        P(e, t) <= 16 ||
         (e.special?.tameUntil && Number(e.special.tameUntil) <= this.time)
       )
         return !1;
@@ -15266,7 +15266,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
         )
       )
         return;
-      const n = 6;
+      const n = 12;
       if (i && P(e, t) > n) {
         ((e.target = 0), this.time >= e.moveAt && this.stepTowards(e, t));
         return;
@@ -15311,7 +15311,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
           ? (s = c)
           : o(l)
             ? (s = l)
-            : o(s) || (s = this.map(e.map).actors.find((u) => o(u) && P(u, e) <= 8));
+            : o(s) || (s = this.map(e.map).actors.find((u) => o(u) && (i || P(u, e) <= 8)));
       } else if (!s || s.dead || s.map !== e.map) {
         const o = [t, ...this.map(e.map).actors.filter((r) => r.friendly && r.master === t.id)];
         s =
@@ -15329,7 +15329,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
             : void 0;
       }
       if (
-        (s && (P(e, s) > 15 || (s.kind === "player" && this.safe(s))) && (s = void 0),
+        (s && ((!i && P(e, s) > 15) || (s.kind === "player" && this.safe(s))) && (s = void 0),
         (e.target = s?.id || 0),
         s)
       ) {
@@ -15746,9 +15746,8 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
         !e.dead &&
         !this.region(e.map).noTeleport &&
         (!!De(e, this.rules) ||
-          [7, 8].some((t) => {
-            const a = e.equipment[t],
-              i = a && this.defs.get(a.id);
+          [e.equipment[7], e.equipment[8], ...e.inventory].some((a) => {
+            const i = a && this.defs.get(a.id);
             return !!a && isTeleportRing(i) && (!a.maxDura || a.currentDura > 0);
           }))
       );
@@ -15953,7 +15952,8 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
         }
         case "PickUp": {
           const i = this.map(a.map).actors.find(
-            (n) => n.kind === "item" && n.x === a.x && n.y === a.y,
+            (n) => n.kind === "item" && n.x === a.x && n.y === a.y &&
+              (t.ObjectID === void 0 || (n.map === a.map && Number.isSafeInteger(t.ObjectID) && n.id === t.ObjectID)),
           );
           if (!i) break;
           if (i.item?.id === this.rules.adaptations.adventure.chestId) {

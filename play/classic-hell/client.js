@@ -2853,6 +2853,7 @@ function render(now) {
         queue.push({ y: portal.Source.y * 32, draw: () => drawPortal(ctx, x, y, now) });
     }
     for (const a of state.actors) {
+      if (!nativeGroundVisible(a)) continue;
       const def = items.get(a.item?.id);
       if (
         a.kind === "item" &&
@@ -2974,6 +2975,7 @@ function drawMonsterFrame(pack, index, p, scale) {
   return art;
 }
 function actor(a, now, isMe) {
+  if (!nativeGroundVisible(a)) return;
   const p = position(a, now),
     anim = animations.get(a.id),
     visualPose = isMe ? visualMotion.pose(a, anim, positions.get(a.id), now, true) : null,
@@ -3280,7 +3282,7 @@ async function control() {
         }
       }
     }
-    const interaction = pendingInteract && state.actors.find((a) => a.id === pendingInteract.id);
+    const interaction = pendingInteract && state.actors.find((a) => a.id === pendingInteract.id && nativeGroundVisible(a));
     if (pendingInteract && !interaction) pendingInteract = null;
     if (
       interaction &&
@@ -3365,7 +3367,7 @@ async function control() {
       if (interaction.kind === "npc") {
         npcId = interaction.id;
         await command("CallNPC", { ObjectID: interaction.id, Key: "[@main]" });
-      } else await command("PickUp");
+      } else await command("PickUp", { ObjectID: interaction.id });
       return;
     }
     if (
@@ -3394,7 +3396,7 @@ function rememberActorHit(a, p, f, text, baseline) {
   });
 }
 function hitActor(x, y, kind) {
-  return pickRenderedActor(actorHits, x, y, kind, (h, x, y) => {
+  return pickRenderedActor(actorHits.filter((h) => nativeGroundVisible(h.a)), x, y, kind, (h, x, y) => {
     const { p, f } = h,
       sx = Math.floor(x - Math.round(p.x + f.dx)),
       sy = Math.floor(y - Math.round(p.y + f.dy));
@@ -5062,12 +5064,12 @@ async function boot() {
       if (code === "KeyF") {
         cancelControl();
         const item = state.actors
-          .filter((a) => a.kind === "item" && distance(a, state.me) <= 2)
+          .filter((a) => a.kind === "item" && nativeGroundVisible(a) && distance(a, state.me) <= 2)
           .sort((a, b) => distance(a, state.me) - distance(b, state.me))[0];
         auto = false;
         path = [];
         if (item) pendingInteract = { id: item.id };
-        else command("PickUp");
+
         return;
       }
       if (code === "Tab") {
@@ -538851,6 +538853,7 @@ function openAssist() {
   <p class="assist-note">${esc(i18n.t("assist.potions"))}</p>
   <label class="assist-row"><input id="assist-flame" type="checkbox">${esc(i18n.t("assist.flame"))}</label>
   <label class="assist-row"><input id="assist-blaze" type="checkbox">${esc(i18n.t("assist.blaze"))}</label><p class="assist-note">${esc(i18n.t(typeof hellMode !== "undefined" && hellMode ? "assist.hellSwords" : "assist.swords"))}</p><button id="assist-save">${esc(i18n.t("assist.save"))}</button><span id="assist-status" role="status"></span>`;
+  renderNativeLootSettings(w.body);
   $("#assist-hp").checked = cfg.hpEnabled;
   $("#assist-mp").checked = cfg.mpEnabled;
   $("#assist-flame").checked = cfg.flamingSword;
@@ -538880,6 +538883,100 @@ function openAssist() {
     if (ok && document.contains(w.body)) $("#assist-status").textContent = i18n.t("assist.saved");
   };
 }
+
+// This version uses its own native equipment qualities and saved filter settings.
+let nativeLootSelection = null;
+const nativeLootQualities = Array.from({ length: 9 }, (_, n) => n);
+const nativeLootStorageKey = "classic-hell.loot-qualities.v1";
+function nativeLootText(key) {
+  const lang = i18n.locale.startsWith("zh") ? "zh" : i18n.locale.startsWith("es") ? "es" : "en";
+  return {
+    zh: { title: "掉落过滤", hint: "选择地面上显示的装备品质。金钱、药水及其他非装备物品始终显示。", reset: "显示全部", status: "已显示品质" },
+    en: { title: "Loot filter", hint: "Choose equipment qualities to show on the ground. Gold, potions and other non-equipment items stay visible.", reset: "Show all", status: "Visible qualities" },
+    es: { title: "Filtro de botín", hint: "Elige las calidades de equipo que se muestran en el suelo. El oro, las pociones y otros objetos siguen visibles.", reset: "Mostrar todo", status: "Calidades visibles" },
+  }[lang][key];
+}
+function nativeLootQualitiesSelected() {
+  if (nativeLootSelection) return nativeLootSelection;
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(nativeLootStorageKey)); } catch {}
+  nativeLootSelection = new Set(Array.isArray(saved) && saved.every((q) => nativeLootQualities.includes(q)) ? saved : nativeLootQualities);
+  return nativeLootSelection;
+}
+function nativeGroundVisible(actor) {
+  if (actor.kind !== "item" || actor.gold || !actor.item) return true;
+  const def = items.get(actor.item.id);
+  if (!def || !(def.Type in equipSlots)) return true;
+  const quality = Math.min(8, Math.floor(exceptionalPoints(actor.item)));
+  return nativeLootQualitiesSelected().has(quality);
+}
+function nativeSetLootQualities(values) {
+  nativeLootSelection = new Set(values.filter((q) => nativeLootQualities.includes(q)));
+  try { localStorage.setItem(nativeLootStorageKey, JSON.stringify([...nativeLootSelection])); } catch {}
+  cancelControl();
+  mobile?.clear();
+  updateNativeLootIndicator();
+}
+function updateNativeLootIndicator() {
+  const count = nativeLootQualitiesSelected().size;
+  for (const node of document.querySelectorAll("[data-native-loot-status]"))
+    node.textContent = nativeLootText("status") + ": " + count + "/9";
+  const button = document.getElementById("native-loot-filter");
+  if (button) {
+    button.title = nativeLootText("title") + " · " + count + "/9";
+    button.classList.toggle("loot-active", count !== 9);
+    button.setAttribute("aria-label", button.title);
+    button.style.color = count !== 9 ? "#ffd45c" : "";
+  }
+}
+function renderNativeLootSettings(body) {
+  const heading = document.createElement("h3"), hint = document.createElement("p"), status = document.createElement("p"), options = document.createElement("div");
+  heading.textContent = nativeLootText("title");
+  hint.className = "assist-note";
+  hint.textContent = nativeLootText("hint");
+  status.dataset.nativeLootStatus = "";
+  status.setAttribute("role", "status");
+  options.style.cssText = "display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px";
+  for (const q of nativeLootQualities) {
+    const label = document.createElement("label"), input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.lootQuality = q;
+    input.checked = nativeLootQualitiesSelected().has(q);
+    input.setAttribute("aria-label", i18n.t("quality." + q));
+    label.style.cssText = "display:flex;align-items:center;gap:6px;min-height:44px";
+    label.style.color = equipmentQuality({ added: { MaxDC: q } }).color;
+    label.append(input, document.createTextNode(i18n.t("quality." + q)));
+    input.onchange = () => {
+      const next = new Set(nativeLootQualitiesSelected());
+      input.checked ? next.add(q) : next.delete(q);
+      nativeSetLootQualities([...next]);
+      for (const checkbox of document.querySelectorAll("[data-loot-quality]"))
+        checkbox.checked = nativeLootQualitiesSelected().has(Number(checkbox.dataset.lootQuality));
+    };
+    options.append(label);
+  }
+  const reset = document.createElement("button");
+  reset.textContent = nativeLootText("reset");
+  reset.onclick = () => {
+    nativeSetLootQualities(nativeLootQualities);
+    for (const checkbox of document.querySelectorAll("[data-loot-quality]")) checkbox.checked = true;
+  };
+  body.append(heading, hint, status, options, reset);
+  updateNativeLootIndicator();
+}
+function openNativeLootFilter() {
+  if (!state.me) return;
+  cancelControl();
+  mobile?.clear();
+  const w = makeWindow("loot-filter", nativeLootText("title"), "assist-window");
+  renderNativeLootSettings(w.body);
+}
+const nativeLootButton = document.createElement("button");
+nativeLootButton.id = "native-loot-filter";
+nativeLootButton.textContent = nativeLootText("title");
+nativeLootButton.onclick = openNativeLootFilter;
+utilityActionHost().append(nativeLootButton);
+updateNativeLootIndicator();
 
 // Shared by the three offline workers and their settings UI.
 var AUTO_BATTLE_SKILLS = {
@@ -546829,6 +546926,9 @@ async function bootMobile() {
     sharedStorageActive: () => activeSharedStorage,
     now: () => performance.now(),
     command,
+    groundVisible: nativeGroundVisible,
+    precisePickup: () => true,
+    pickupData: (a) => ({ ObjectID: a.id }),
     dispatch: dispatchCommand,
     selected: (id) => {
       selected = id;

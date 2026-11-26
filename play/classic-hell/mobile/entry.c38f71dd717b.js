@@ -2115,16 +2115,16 @@ function compactHudLayout({ w, h, insets, attack, skill, arcRadius }) {
     },
   };
 }
-var sideNavigation = (map) => ({
-  left: Math.round(map.left + map.width - 144),
+var sideNavigation = (map, width = 144) => ({
+  left: Math.round(map.left + map.width - width),
   top: Math.round(map.top + map.height + 4),
-  width: 144,
+  width,
   height: 48,
 });
-function minimapCanvasLimit({ top, chrome, arcTop, base: base2, left, circles = [] }) {
+function minimapCanvasLimit({ top, chrome, arcTop, base: base2, left, width = 144, circles = [] }) {
   let cap = Math.min(base2, Math.floor(arcTop - top - chrome - 4 - 48 - 3));
   for (const c of circles) {
-    const dx = Math.max(left - c.x, c.x - left - 144, 0),
+    const dx = Math.max(left - c.x, c.x - left - width, 0),
       reach = c.r + 3;
     if (dx >= reach) continue;
     const clearBottom = c.y - Math.sqrt(reach * reach - dx * dx);
@@ -2144,6 +2144,31 @@ function targetCyclePosition({ w, h, insets, attack, skill, radius }) {
   const ay = h - insets.b - 20 - attack / 2;
   const upperBottom = ay - radius * Math.sin((84 * Math.PI) / 180) + skill / 2;
   return { left: w - insets.r - 46, top: Math.round((upperBottom + ay - attack / 2 - 44) / 2) };
+}
+
+// Keep navigation clear of combat circles and existing HUD panels on small screens.
+function fitSideNavigation(preferred, { width, height, insets, circles, obstacles }) {
+  const margin = 4;
+  const bounds = [...obstacles, ...circles.map((c) => ({ left: c.x - c.r, top: c.y - c.r, width: c.r * 2, height: c.r * 2 }))];
+  const xs = [preferred.left, insets.l + 8, width - insets.r - preferred.width - 8],
+    ys = [preferred.top, insets.t + 8, height - insets.b - preferred.height - 8];
+  for (const b of bounds) {
+    xs.push(b.left - preferred.width - margin, b.left + b.width + margin);
+    ys.push(b.top - preferred.height - margin, b.top + b.height + margin);
+  }
+  const valid = (b) => {
+    if (b.left < insets.l || b.top < insets.t || b.left + b.width > width - insets.r || b.top + b.height > height - insets.b) return false;
+    if (obstacles.some((o) => b.left < o.left + o.width + margin && b.left + b.width > o.left - margin && b.top < o.top + o.height + margin && b.top + b.height > o.top - margin)) return false;
+    return !circles.some((c) => Math.hypot(Math.max(b.left - c.x, c.x - b.left - b.width, 0), Math.max(b.top - c.y, c.y - b.top - b.height, 0)) < c.r + margin);
+  };
+  if (valid(preferred)) return preferred;
+  let best = null, score = Infinity;
+  for (const x of xs) for (const y of ys) {
+    const box = { ...preferred, left: Math.round(x), top: Math.round(y) },
+      distance = (box.left - preferred.left) ** 2 + (box.top - preferred.top) ** 2;
+    if (distance < score && valid(box)) { best = box; score = distance; }
+  }
+  return best || preferred;
 }
 
 // singleplayer/mobile/v2/view-state.js
@@ -2409,6 +2434,10 @@ function installV2(ctx, hooks) {
   const bagBtn = navButton("m2-bagbtn", "bag", t("tabBag"), t("tabBag"), () => openSheet("bag"));
   const bagCount = el("em", "m2-bagcount");
   bagBtn.append(bagCount);
+  const mountBtn = navButton("m2-mountbtn", "mount", v1t("mount"), v1t("mount"), () => {
+    controller.clear();
+    b.command("ToggleMount");
+  });
   const menuBtn = navButton("m2-menu", "menu", v1t("menu"), t("menuShort"), () => openHub());
   const loot = button("", () => controller.pickup(), hud, { className: "m2-loot" }),
     lootCount = el("i", "m2-loot-count");
@@ -2544,7 +2573,7 @@ function installV2(ctx, hooks) {
     [".forge-launch", "forge"],
     ["#assist-launch", "assist"],
     ["#dx-equipment-launch", "workshop"],
-    ["#dx-loot-filter", "loot-filter"],
+    ["#native-loot-filter", "loot-filter"],
     ["#minimap .map-expand", "map"],
   ];
   const pics = {};
@@ -2571,6 +2600,7 @@ function installV2(ctx, hooks) {
       node.classList.add("m2-pictured");
     }
   }
+  let navigationLayoutKey = "", navigationLayout = null;
   function placeTray() {
     const mm = $("#minimap"),
       canvas = mm?.querySelector("canvas");
@@ -2590,7 +2620,8 @@ function installV2(ctx, hooks) {
           chrome: r.height - c.height,
           arcTop,
           base: 52,
-          left: sideNavigation(r).left,
+          left: sideNavigation(r, 192).left,
+          width: 192,
           circles,
         }),
         value = cap + "px";
@@ -2599,14 +2630,21 @@ function installV2(ctx, hooks) {
         r = turn.localRect(mm);
       }
     }
-    let box = sideNavigation(r);
-    const overlaps = [attack, cycle, loot, ...skillButtons].some((node) => {
-      const c = turn.localRect(node), x = c.left + c.width / 2, y = c.top + c.height / 2;
-      const dx = Math.max(box.left - x, x - box.left - box.width, 0);
-      const dy = Math.max(box.top - y, y - box.top - box.height, 0);
-      return Math.hypot(dx, dy) < c.width / 2 + 3;
-    });
-    if (overlaps) box = { ...box, left: Math.max(insets().l + 8, Math.round(r.left - box.width - 8)), top: Math.round(r.top) };
+    const preferred = sideNavigation(r, 192),
+      circles = [attack, cycle, loot, ...skillButtons].filter((n) => !n.hidden).map((node) => {
+        const c = turn.localRect(node);
+        return { x: c.left + c.width / 2, y: c.top + c.height / 2, r: c.width / 2 };
+      }),
+      obstacles = [mm, $(".m2-vit"), $("#buff-effects"), $("#novice-guide"), $("#quest-tracker")]
+        .filter((n) => n && n.getClientRects().length && getComputedStyle(n).display !== "none")
+        .map((n) => turn.localRect(n)),
+      options = { width: W, height: H, insets: insets(), circles, obstacles },
+      key = JSON.stringify([preferred, options]);
+    if (key !== navigationLayoutKey) {
+      navigationLayoutKey = key;
+      navigationLayout = fitSideNavigation(preferred, options);
+    }
+    const box = navigationLayout;
     nav.style.cssText = `left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px`;
     doc.setAttribute("data-m2-notray", "");
   }
@@ -3300,6 +3338,12 @@ function installV2(ctx, hooks) {
   function updateHUD() {
     const s = b.state(),
       me = s.me;
+    const mounted = !!me.mountUid;
+    mountBtn.disabled = me.dead || (!mounted && !me.inventory.some((item) => item && b.itemDef(item.id)?.Type === "Mount"));
+    if (mountBtn.getAttribute("aria-pressed") !== String(mounted)) {
+      mountBtn.setAttribute("aria-pressed", String(mounted));
+      mountBtn.style.color = mounted ? "#ffd45c" : "";
+    }
     const buffs = $("#buff-effects");
     if (buffs && buffs.parentElement !== ui.querySelector(".m2-vit"))
       ui.querySelector(".m2-vit").append(buffs);
@@ -4916,6 +4960,13 @@ async function mountMobile(b) {
     m.setAttribute("aria-label", t("menu"));
   }
   root.querySelector("[data-menu]").onclick = menu;
+  const mountButton = button("", () => {
+    controller.clear();
+    b.command("ToggleMount");
+  }, root.querySelector(".mobile-top"));
+  mountButton.dataset.action = "mount";
+  mountButton.append(iconEl("mount", "", "mobile-ic"));
+  mountButton.setAttribute("aria-label", t("mount"));
   const targetButton = button("", () => controller.cycle(), actions),
     attackButton = button("", () => controller.attack(), actions, { className: "mobile-attack" }),
     pickButton = button("", () => controller.pickup(), actions);
@@ -5943,6 +5994,10 @@ async function mountMobile(b) {
     const s = b.state(),
       game = s?.stage === "Game";
     renderPetPortraits(s);
+    const mounted = !!s?.me?.mountUid;
+    dom.property(mountButton, "disabled", !game || s.me.dead || (!mounted && !s.me.inventory.some((item) => item && b.itemDef(item.id)?.Type === "Mount")));
+    dom.attribute(mountButton, "aria-pressed", String(mounted));
+    dom.style(mountButton, "color", mounted ? "#ffd45c" : "");
     const hasPanel = !!$("#windows .window");
     if (hasPanel && !lastPanel) pauseForPanel();
     lastPanel = hasPanel;

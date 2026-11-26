@@ -15523,7 +15523,7 @@ var Game7 = class {
       a.master !== r.id ||
       r.dead ||
       a.map !== r.map ||
-      distance(a, r) <= 10 ||
+      distance(a, r) <= 16 ||
       (a.special?.tameUntil && Number(a.special.tameUntil) <= this.time)
     )
       return false;
@@ -15562,7 +15562,7 @@ var Game7 = class {
       )
     )
       return;
-    const leash = 6;
+    const leash = 12;
     if (companion && distance(a, r) > leash) {
       a.target = 0;
       if (this.time >= a.moveAt) this.stepTowards(a, r);
@@ -15607,7 +15607,7 @@ var Game7 = class {
       if (validEnemy(ordered2)) target = ordered2;
       else if (validEnemy(focus)) target = focus;
       else if (!validEnemy(target))
-        target = this.map(a.map).actors.find((m) => validEnemy(m) && distance(m, a) <= 8);
+        target = this.map(a.map).actors.find((m) => validEnemy(m) && (companion || distance(m, a) <= 8));
     } else if (!target || target.dead || target.map !== a.map) {
       const enemies2 = [
         r,
@@ -15627,7 +15627,7 @@ var Game7 = class {
               .sort((x, y) => distance(a, x) - distance(a, y))[0]
           : void 0;
     }
-    if (target && (distance(a, target) > 15 || (target.kind === "player" && this.safe(target))))
+    if (target && ((!companion && distance(a, target) > 15) || (target.kind === "player" && this.safe(target))))
       target = void 0;
     a.target = target?.id || 0;
     if (target) {
@@ -15978,9 +15978,8 @@ var Game7 = class {
       !r.dead &&
       !this.region(r.map).noTeleport &&
       (!!activeTestTalisman(r, this.rules) ||
-        [7, 8].some((slot) => {
-          const item = r.equipment[slot],
-            def = item && this.defs.get(item.id);
+        [r.equipment[7], r.equipment[8], ...r.inventory].some((item) => {
+          const def = item && this.defs.get(item.id);
           return !!item && isTeleportRing(def) && (!item.maxDura || item.currentDura > 0);
         }))
     );
