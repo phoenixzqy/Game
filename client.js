@@ -537986,6 +537986,13 @@ function managementItem(slot) {
     ? me.inventory.find((i) => i?.uid === me.mountUid) || me.equipment[index]
     : me.equipment[index];
 }
+function managementEligible(item, mode) {
+  const def = items.get(item?.id);
+  if (mode !== "sell") return equipmentLockable(item, def);
+  return !!item && !!def && item.count > 0 && !equipmentLocked(item) &&
+    def.Type !== "Quest" && !def.Bind?.includes("DontSell") &&
+    state.me.mountUid !== item.uid && !state.me.equipment.some((i) => i?.uid === item.uid);
+}
 function endEquipmentManagement() {
   equipmentManagement = null;
   managementPress = null;
@@ -538012,14 +538019,14 @@ function syncEquipmentManagement() {
     if (hint) {
       hint.hidden = !active;
       const text = active
-        ? managementText(active.mode === "share" ? "chooseShare" : "chooseLock")
+        ? managementText(active.mode === "share" ? "chooseShare" : active.mode === "sell" ? "chooseSell" : "chooseLock")
         : "";
       if (hint.textContent !== text) hint.textContent = text;
     }
     for (const b of w.querySelectorAll("[data-management-mode]")) {
       const selected = active?.mode === b.dataset.managementMode;
       b.setAttribute("aria-pressed", String(selected));
-      const text = managementText(selected ? "done" : b.dataset.managementMode);
+      const text = managementText(selected ? (active.mode === "sell" ? "stopSell" : "done") : b.dataset.managementMode);
       if (b.textContent !== text) b.textContent = text;
       b.disabled = !!active?.busy;
     }
@@ -538027,7 +538034,7 @@ function syncEquipmentManagement() {
       "[data-inventory-slot],[data-equipment-slot],[data-storage-slot]",
     )) {
       const item = managementItem(slot),
-        eligible = equipmentLockable(item, items.get(item?.id));
+        eligible = managementEligible(item, active?.mode);
       slot.classList.toggle("management-eligible", !!active && eligible);
       slot.classList.toggle("management-ineligible", !!active && !eligible);
       const locked = equipmentLocked(item),
@@ -538049,7 +538056,7 @@ function setupEquipmentManagement(w, kind) {
   const toolbar = document.createElement("nav");
   toolbar.className = "equipment-management-actions";
   toolbar.setAttribute("aria-label", managementText("actions"));
-  for (const mode of ["share", "lock"]) {
+  for (const mode of kind === "bag" ? ["share", "lock", "sell"] : ["share", "lock"]) {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.managementMode = mode;
@@ -538106,7 +538113,7 @@ async function selectManagedEquipment(slot) {
     m.busy ||
     m.owner !== state?.me?.id ||
     m.epoch !== state.epoch ||
-    !equipmentLockable(item, items.get(item?.id))
+    !managementEligible(item, m.mode)
   )
     return;
   const uid = item.uid,
@@ -538119,7 +538126,10 @@ async function selectManagedEquipment(slot) {
   m.busy = true;
   syncEquipmentManagement();
   try {
-    await command("SetEquipmentLock", { UniqueID: uid, Locked: !equipmentLocked(item) });
+    if (m.mode === "sell")
+      await command("SellCarriedItem", { UniqueID: uid, Count: item.count });
+    else
+      await command("SetEquipmentLock", { UniqueID: uid, Locked: !equipmentLocked(item) });
   } finally {
     if (equipmentManagement === m) {
       m.busy = false;
@@ -539010,7 +539020,7 @@ function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
   if (actor.gold > 0) return config.gold;
   const item = actor.item,
     def = item && defs.get(item.id);
-  if (!def || !config.ids.includes(item.id) || !config.types.includes(def.Type))
+  if (!def || def.Type === "Book" || !config.ids.includes(item.id) || !config.types.includes(def.Type))
     return false;
   // Rarity, level and attributes describe equipment, never supplies/materials.
   if (!itemSlots(def)?.length) return true;
@@ -539143,7 +539153,7 @@ function autoBattleCopy() {
       "已保存",
       "停止战斗",
       "手动操作后暂停1.5秒；死亡或换图后停止战斗。喝药仍在辅助窗口配置。",
-      "默认全部拾取。装备须同时满足物品、类别、稀有度、等级和属性条件；星级与极品属性分别判断。配置仅用于当前游戏。金币及材料／补给包裹物品在5格内自动拾取，不受过滤器限制。背包放不下时保留掉落。",
+      "默认全部拾取，技能书仅手动拾取。装备须同时满足物品、类别、稀有度、等级和属性条件；星级与极品属性分别判断。配置仅用于当前游戏。金币及材料／补给包裹物品（技能书除外）在5格内自动拾取，不受过滤器限制。背包放不下时保留掉落。",
       "金币和药水预设",
       "状态",
       "开启",
@@ -539184,7 +539194,7 @@ function autoBattleCopy() {
       "Saved",
       "Stop battle",
       "Manual input pauses for 1.5 seconds. Death or map changes stop battle. Configure potions in Assist.",
-      "All items are selected by default. Equipment must match every filter; stars and exceptional attributes are independent. Settings belong to this game. Gold and supplies/materials auto-collect within 5 tiles regardless of filters. Full bags leave drops on the ground.",
+      "All items are selected by default; skill books require manual pickup. Equipment must match every filter; stars and exceptional attributes are independent. Settings belong to this game. Gold and supplies/materials (except skill books) auto-collect within 5 tiles regardless of filters. Full bags leave drops on the ground.",
       "Gold and potions preset",
       "Status",
       "On",
@@ -539225,7 +539235,7 @@ function autoBattleCopy() {
       "Guardado",
       "Detener combate",
       "El control manual pausa 1,5 segundos. Morir o cambiar de mapa detiene el combate. Configura pociones en Ayuda.",
-      "Todos los objetos están seleccionados por defecto. El equipo debe cumplir todos los filtros; estrellas y atributos se evalúan por separado. La configuración pertenece a este juego. Oro y materiales/suministros se recogen a 5 casillas sin filtros. Si la bolsa está llena, el objeto permanece.",
+      "Todos los objetos están seleccionados por defecto; los libros de habilidades se recogen manualmente. El equipo debe cumplir todos los filtros; estrellas y atributos se evalúan por separado. La configuración pertenece a este juego. Oro y materiales/suministros (excepto libros de habilidades) se recogen a 5 casillas sin filtros. Si la bolsa está llena, el objeto permanece.",
       "Preajuste de oro y pociones",
       "Estado",
       "Activo",

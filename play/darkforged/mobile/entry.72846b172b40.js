@@ -5486,14 +5486,20 @@ async function mountMobile(b) {
         );
       button(
         t("drop"),
-        () => {
+        async () => {
           panelTaps.reset();
           if (!exists()) {
             closeDetail();
             return;
           }
+          const remaining = current().count;
+          if (remaining === 1) {
+            await b.command("DropItem", { UniqueID: uid, Count: 1 });
+            closeDetail();
+            return;
+          }
           const p = dialog(t("dropConfirm")),
-            count = quantity(p, item.count, item.count);
+            count = quantity(p, remaining, remaining);
           button(
             t("confirm"),
             async () => {

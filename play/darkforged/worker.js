@@ -927,6 +927,28 @@ function sellEquipmentBatch(g, r, data) {
   g.say(message("manage.sold", { count: quote.rows.length, gold: quote.total }));
 }
 
+// Portable sales consume one current inventory stack, after every validation.
+function sellCarriedItem(g, r, data) {
+  if (!Number.isSafeInteger(data.UniqueID) || !Number.isSafeInteger(data.Count) || data.Count < 1)
+    throw new LocalizedError(message("manage.invalidSaleItem"));
+  const index = r.inventory.findIndex((i) => i?.uid === data.UniqueID),
+    item = r.inventory[index],
+    def = item && g.defs.get(item.id);
+  if (!item || !def || item.count !== data.Count)
+    throw new LocalizedError(message("manage.saleChanged"));
+  assertEquipmentDisposable(item);
+  if (def.Type === "Quest" || def.Bind?.includes("DontSell") ||
+      r.mountUid === item.uid || r.equipment.some((i) => i?.uid === item.uid))
+    throw new LocalizedError(message("manage.cannotSell"));
+  const gold = Math.trunc(price(item, def) / 2);
+  if (!Number.isSafeInteger(gold) || gold < 0 || !Number.isSafeInteger(r.gold + gold))
+    throw new LocalizedError(message("manage.invalidSaleItem"));
+  r.inventory[index] = null;
+  r.gold += gold;
+  g.say(message("manage.carriedSold", { count: item.count, gold }));
+  g.emit("SellItem", { Success: true });
+}
+
 // games/darkforged/singleplayer/core/challenges.ts
 function enterChallenge(g, r, id) {
   const c = g.rules.adaptations.guideChallenges?.find((c2) => c2.id === id);
@@ -14109,7 +14131,7 @@ var Game7 = class {
         distance(r, a) > 5 ||
         (a.expires && a.expires <= this.time) ||
         a.item?.id === this.rules.adaptations.adventure.chestId ||
-        (!a.gold && (!this.defs.has(a.item?.id) || isBagEquipment(this.defs.get(a.item.id)) || this.defs.get(a.item.id).Type === "Quest"))
+        (!a.gold && (!this.defs.has(a.item?.id) || isBagEquipment(this.defs.get(a.item.id)) || ["Quest", "Book"].includes(this.defs.get(a.item.id).Type)))
       ) return true;
       return !this.transferGroundLoot(r, a);
     });
@@ -16001,6 +16023,9 @@ var Game7 = class {
       case "SetEquipmentLock":
         setEquipmentLock(this, r, data);
         break;
+      case "SellCarriedItem":
+        sellCarriedItem(this, r, data);
+        break;
       case "SellEquipmentBatch":
         sellEquipmentBatch(this, r, data);
         break;
@@ -17681,7 +17706,7 @@ function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
   if (actor.gold > 0) return config.gold;
   const item = actor.item,
     def = item && defs.get(item.id);
-  if (!def || !config.ids.includes(item.id) || !config.types.includes(def.Type))
+  if (!def || def.Type === "Book" || !config.ids.includes(item.id) || !config.types.includes(def.Type))
     return false;
   // Rarity, level and attributes describe equipment, never supplies/materials.
   if (!itemSlots(def)?.length) return true;
@@ -21545,6 +21570,7 @@ async function request(route, data, after) {
         "SellItem",
         "SetEquipmentLock",
         "SellEquipmentBatch",
+        "SellCarriedItem",
         "FinishQuest",
         "RedeemEvent",
         "RedeemTestTalisman",

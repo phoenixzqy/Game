@@ -851,6 +851,28 @@ function Ye(e, t) {
   };
 }
 
+// Portable sales consume one current inventory stack, after every validation.
+function sellCarriedItem(g, r, data) {
+  if (!Number.isSafeInteger(data.UniqueID) || !Number.isSafeInteger(data.Count) || data.Count < 1)
+    throw new b(message("manage.invalidSaleItem"));
+  const index = r.inventory.findIndex((i) => i?.uid === data.UniqueID),
+    item = r.inventory[index],
+    def = item && g.defs.get(item.id);
+  if (!item || !def || item.count !== data.Count)
+    throw new b(message("manage.saleChanged"));
+  assertEquipmentDisposable(item);
+  if (def.Type === "Quest" || def.Bind?.includes("DontSell") ||
+      r.mountUid === item.uid || r.equipment.some((i) => i?.uid === item.uid))
+    throw new b(message("manage.cannotSell"));
+  const gold = Math.trunc(price(item, def) / 2);
+  if (!Number.isSafeInteger(gold) || gold < 0 || !Number.isSafeInteger(r.gold + gold))
+    throw new b(message("manage.invalidSaleItem"));
+  r.inventory[index] = null;
+  r.gold += gold;
+  g.say(message("manage.carriedSold", { count: item.count, gold }));
+  g.emit("SellItem", { Success: true });
+}
+
 
 function qa(e, t) {
   const a = Ye(
@@ -13747,7 +13769,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
           P(r, a) > 5 ||
           (a.expires && a.expires <= this.time) ||
           a.item?.id === this.rules.adaptations.adventure.chestId ||
-          (!a.gold && (!this.defs.has(a.item?.id) || isBagEquipment(this.defs.get(a.item.id)) || this.defs.get(a.item.id).Type === "Quest"))
+          (!a.gold && (!this.defs.has(a.item?.id) || isBagEquipment(this.defs.get(a.item.id)) || ["Quest", "Book"].includes(this.defs.get(a.item.id).Type)))
         ) return true;
         return !this.transferGroundLoot(r, a);
       });
@@ -15771,6 +15793,9 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
         case "SetEquipmentLock":
           Qn(this, a, t);
           break;
+        case "SellCarriedItem":
+          sellCarriedItem(this, a, t);
+          break;
         case "SellEquipmentBatch":
           Kn(this, a, t);
           break;
@@ -17461,7 +17486,7 @@ function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
   if (actor.gold > 0) return config.gold;
   const item = actor.item,
     def = item && defs.get(item.id);
-  if (!def || !config.ids.includes(item.id) || !config.types.includes(def.Type))
+  if (!def || def.Type === "Book" || !config.ids.includes(item.id) || !config.types.includes(def.Type))
     return false;
   // Rarity, level and attributes describe equipment, never supplies/materials.
   if (!itemSlots(def)?.length) return true;
@@ -20680,6 +20705,7 @@ async function sc(e, t, a) {
         "SellItem",
         "SetEquipmentLock",
         "SellEquipmentBatch",
+        "SellCarriedItem",
         "FinishQuest",
         "RedeemEvent",
         "RedeemTestTalisman",
