@@ -1881,32 +1881,15 @@ function os(e, t, a, i, n) {
     r -= c.weight;
   }
 }
-function spiritNextXP(e, t) {
-  return t >= e.cap ? 0 : (e.thresholds?.[t] ?? (t + 1) * e.experienceStep);
-}
+function spiritNextXP(e, t) { return t >= e.cap ? 0 : 100; }
 function zt(e, t) {
-  const a = e.spiritProgress;
-  if (!a || a.curveVersion === 3 || !t.thresholds) return;
-  let n =
-      (a.curveVersion === 2
-        ? [2e3, 8e3, 2e4, 6e4, 1e5, 16e4, 21e4]
-        : Array.from(
-            {
-              length: t.cap,
-            },
-            (o, r) => (r + 1) * t.experienceStep,
-          )
-      )
-        .slice(0, a.level)
-        .reduce((o, r) => o + r, 0) + a.xp,
-    s = 0;
-  for (; s < t.cap && n >= spiritNextXP(t, s); ) ((n -= spiritNextXP(t, s)), s++);
-  e.spiritProgress = {
-    level: s,
-    xp: s === t.cap ? 0 : n,
-    curveVersion: 3,
-  };
+  const p = e.spiritProgress;
+  if (!p || p.curveVersion === 4) return;
+  let level = p.level, xp = p.xp;
+  while (level < t.cap && xp >= 100) { xp -= 100; level++; }
+  e.spiritProgress = { level, xp: level >= t.cap ? 0 : xp, curveVersion: 4 };
 }
+
 function rs(e, t) {
   const a = e.special?.nativeBeastArmourRank
     ? t.monsters.find((n) => n.DreamOriginalId === 82)
@@ -5792,7 +5775,7 @@ function spiritGrowth(e, t) {
   const i = (t.spiritProgress ??= {
     level: 0,
     xp: 0,
-    curveVersion: 3,
+    curveVersion: 4,
   });
   return {
     cfg: a,
@@ -5867,8 +5850,7 @@ function hs(e, t) {
 }
 function bs(e, t, a, i) {
   if (t.job !== "Taoist" && t.job !== "Wizard") return;
-  const n = isHell(e.rules);
-  if (!(!n && (!Number.isFinite(i) || i <= 0)))
+  if (Number.isFinite(i) && i > 0)
     for (const s of e.map(t.map).actors) {
       if (
         !isOwnedCompanion(s) ||
@@ -5884,16 +5866,12 @@ function bs(e, t, a, i) {
         r = Number(o.petLevel || 0),
         c = Number(o.maxPetLevel || 0);
       if (!(r >= c)) {
-        if (n) {
-          zr(s) && e.refreshActor(s);
-          continue;
-        }
         for (
           o.petXP = Number(o.petXP || 0) + i;
-          Number(o.petLevel || 0) < c && Number(o.petXP) >= (Number(o.petLevel || 0) + 1) * 2e4;
+          Number(o.petLevel || 0) < c && Number(o.petXP) >= 100;
 
         )
-          ((o.petXP = Number(o.petXP) - (Number(o.petLevel || 0) + 1) * 2e4),
+          ((o.petXP = Number(o.petXP) - 100),
             (o.petLevel = Number(o.petLevel || 0) + 1));
         o.petLevel !== r && e.refreshActor(s);
       }
@@ -7097,10 +7075,6 @@ function Qs(e, t, a, i) {
   if (!c) throw new b(message("core.dream-magic.summonDream.b6561f1b76"));
   const l = r || a.Spell === "SummonSkeleton" ? 1 : 2,
     u = r ? 1 : s >= 3 ? 2 : 1;
-  for (const f of pets(e, t).filter(
-    (v) => v.special?.dreamFamily === l && v.definition !== c.Index,
-  ))
-    ((f.dead = !0), (f.hp = 0), (f.expires = e.time));
   const h = pets(e, t).filter((f) => f.definition === c.Index),
     p = r ? spiritGrowth(e, t) : null,
     g = r
@@ -7161,7 +7135,7 @@ function zs(e, t, a, i) {
   if (e.time < Math.max(t.spellAt, t.actionAt, n.s.CastTime)) return;
   const c = le(a, s, t.stats);
   if (t.mp < c) throw new b(message("core.dream-magic.castDream.26f1ab23c0"));
-  let l = e.actor(Number(i.TargetID));
+  let l = r === "Poisoning" ? t : e.actor(Number(i.TargetID));
   const u = {
     x: Number(i.Location?.X ?? t.x),
     y: Number(i.Location?.Y ?? t.y),
@@ -7203,7 +7177,8 @@ function zs(e, t, a, i) {
     case "FrostCrunch": {
       const m = p();
       if (!canReachDreamSpell(e, t, r, m)) throw new b(message("skill.projectileObstructed"));
-      v = () => y(m, g(r === "SoulFireBall" ? "SC" : "MC"));
+      v = () => y(m, g(r === "SoulFireBall" ? "SC" : "MC") *
+        (r === "SoulFireBall" && n.s.Level >= 4 ? 2 : 1));
       break;
     }
     case "FireBang":
@@ -7292,12 +7267,13 @@ function zs(e, t, a, i) {
       };
       break;
     case "Poisoning": {
-      const m = p();
       v = () => {
-        const M = (20 + s * 7 + L(e, t, "SC") * 2) * 1e3,
-          k = e.buff(m, "Green", M, poisoningDamage(s, t.stats), {}, t.id, r);
-        (k && (k.interval = 1e3),
-          e.buff(m, "DreamPoisonArmour", M, Math.min(100, 4 * s), {}, t.id, r));
+        const duration = (20 + s * 7 + L(e, t, "SC") * 2) * 1e3;
+        for (const m of enemies(e, t).filter((m) => P(t, m) <= a.Range)) {
+          const buff = e.buff(m, "Green", duration, poisoningDamage(s, t.stats), {}, t.id, r);
+          if (buff) buff.interval = 1e3;
+          e.buff(m, "DreamPoisonArmour", duration, Math.min(100, 4 * s), {}, t.id, r);
+        }
       };
       break;
     }
@@ -7495,7 +7471,7 @@ function zs(e, t, a, i) {
           }),
         );
       if (t.level - M.Level < 3) throw new b(message("core.dream-magic.castDream.fcd380a876"));
-      if (pets(e, t).length >= (s === 1 ? 1 : 3))
+      if (pets(e, t).filter((pet) => pet.special?.dreamTamed || pet.special?.tameUntil).length >= (s === 1 ? 1 : 3))
         throw new b(message("core.dream-magic.castDream.b245cda302"));
       v = () => {
         const w = Math.max(1, Math.trunc((70 - L(e, t, "MC")) / 10));
@@ -7917,7 +7893,8 @@ function si(e, t, a, i) {
       if (s.Level > t.level + 2 || !s.CanTame) return;
       const r = Object.values(e.maps)
         .flatMap((u) => u.actors)
-        .filter((u) => u.friendly && u.master === t.id && !u.dead);
+        .filter((u) => u.friendly && u.master === t.id && !u.dead &&
+          (u.special?.tameUntil || u.special?.dreamTamed));
       if (
         s.IsBoss &&
         r.filter((u) => e.monsters.get(u.definition)?.IsBoss).length >=
@@ -8083,7 +8060,7 @@ function wt(e, t, a) {
     t.mp < c)
   )
     throw new b(message("core.magic.castMagic.26f1ab23c0"));
-  let l = e.actor(Number(a.TargetID));
+  let l = i === "Poisoning" ? t : e.actor(Number(a.TargetID));
   const u = {
     x: Number(a.Location?.X ?? t.x),
     y: Number(a.Location?.Y ?? t.y),
@@ -8273,7 +8250,7 @@ function wt(e, t, a) {
     case "SoulFireBall": {
       const m = p();
       y = () => {
-        let M = f(i === "SoulFireBall" ? "SC" : "MC");
+        let M = f(i === "SoulFireBall" ? "SC" : "MC") * (i === "SoulFireBall" && r >= 4 ? 2 : 1);
         i === "ThunderBolt" && e.monsters.get(m.definition)?.Undead && (M = Math.trunc(M * 1.5));
         const k = e.schedule(
           "hit",
@@ -8510,7 +8487,7 @@ function wt(e, t, a) {
       break;
     }
     case "Poisoning": {
-      const m = p(),
+      const targets = h().filter((m) => targetableMonster(m) && P(t, m) <= (s.Range || 7)),
         M = [...t.equipment, ...t.inventory].find(
           (w) =>
             w &&
@@ -8521,7 +8498,7 @@ function wt(e, t, a) {
         k = M ? e.defs.get(M.id).Shape : 1;
       y = () => {
         const w = f("SC");
-        e.deferBuff(
+        for (const m of targets) e.deferBuff(
           t,
           m,
           k === 1 ? "Green" : "Red",
@@ -8550,13 +8527,6 @@ function wt(e, t, a) {
           .flatMap((w) => w.actors)
           .find((w) => w.master === t.id && w.name === m && !w.dead),
         k = M ? () => {} : g(0, i === "SummonSkeleton" ? 1 : i === "SummonShinsu" ? 5 : 2);
-      if (
-        !M &&
-        Object.values(e.maps)
-          .flatMap((w) => w.actors)
-          .filter((w) => w.friendly && w.master === t.id && !w.dead).length >= 2
-      )
-        throw new b(message("core.magic.castMagic.23fe292b10"));
       y = () => {
         (M || e.levelSkill(t, o), k());
         const w = e.schedule(
@@ -13752,6 +13722,29 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
           !0)
         : !1;
     }
+    transferGroundLoot(r, a) {
+      if (a.gold) {
+        r.gold += a.gold;
+        this.emit("GainedGold", { Gold: a.gold });
+      } else if (a.item && !this.give(r, a.item)) return false;
+      return true;
+    }
+    autoLootNearby(r) {
+      if (r.dead || this.time < (this.lootScanAt || 0)) return;
+      this.lootScanAt = this.time + 200;
+      const map = this.map(r.map);
+      map.actors = map.actors.filter((a) => {
+        if (
+          a.kind !== "item" ||
+          a.map !== r.map ||
+          P(r, a) > 5 ||
+          (a.expires && a.expires <= this.time) ||
+          a.item?.id === this.rules.adaptations.adventure.chestId ||
+          (!a.gold && this.defs.get(a.item?.id)?.Type !== "Potion")
+        ) return true;
+        return !this.transferGroundLoot(r, a);
+      });
+    }
     count(e, t) {
       return [...e.questInventory, ...e.inventory].reduce(
         (a, i) => a + (i?.id === t ? i.count : 0),
@@ -13827,14 +13820,13 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
           const s = n.special,
             o = Number(s.petLevel || 0),
             r = Number(s.maxPetLevel || 0);
-          n.special?.dreamPet ||
-            o >= r ||
-            (isHell(this.rules) && !isSpirit(this, n)) ||
-            ((s.petXP = Number(s.petXP || 0) + t * ([18, 23, 38].includes(n.ai || 0) ? 3 : 1)),
-            Number(s.petXP) >= (o + 1) * 2e4 &&
-              ((s.petXP = Number(s.petXP) - (o + 1) * 2e4),
-              (s.petLevel = o + 1),
-              this.refreshActor(n)));
+          if (n.special?.dreamPet || o >= r) continue;
+          s.petXP = Number(s.petXP || 0) + t * ([18, 23, 38].includes(n.ai || 0) ? 3 : 1);
+          while (Number(s.petLevel || 0) < r && Number(s.petXP) >= 100) {
+            s.petXP = Number(s.petXP) - 100;
+            s.petLevel = Number(s.petLevel || 0) + 1;
+          }
+          if (s.petLevel !== o) this.refreshActor(n);
         }
         for (
           ;
@@ -14387,7 +14379,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
           ((g.spiritProgress = {
             level: 0,
             xp: 0,
-            curveVersion: 3,
+            curveVersion: 4,
           }),
           this.say(message("skill.spirit.died")));
       }
@@ -15174,6 +15166,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
       ((this.map(t.map).actors = this.map(t.map).actors.filter(
         (n) => !n.expires || n.expires > this.time,
       )),
+        this.autoLootNearby(t),
         Gt(this, t),
         jo(this, t),
         kr(this, t));
@@ -15967,12 +15960,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
             Pr(this, a, i);
             break;
           }
-          if (i.gold)
-            ((a.gold += i.gold),
-              this.emit("GainedGold", {
-                Gold: i.gold,
-              }));
-          else if (i.item && !this.give(a, i.item))
+          if (!this.transferGroundLoot(a, i))
             throw new b(message("core.game.command.f4f8709c7f"));
           this.map(a.map).actors = this.map(a.map).actors.filter((n) => n !== i);
           break;
@@ -18128,15 +18116,17 @@ function ne(e, t) {
       if (
         !x ||
         !m ||
-        ![void 0, 1, 2, 3].includes(x.curveVersion) ||
+        ![void 0, 1, 2, 3, 4].includes(x.curveVersion) ||
         !s(x.level, 0, m.cap) ||
         !s(
           x.xp,
           0,
           x.level === m.cap
             ? 0
-            : (x.curveVersion === 3
+            : (x.curveVersion === 4
                 ? spiritNextXP(m, x.level)
+                : x.curveVersion === 3
+                  ? (m.thresholds?.[x.level] ?? (x.level + 1) * m.experienceStep)
                 : x.curveVersion === 2
                   ? [2e3, 8e3, 2e4, 6e4, 1e5, 16e4, 21e4][x.level]
                   : (x.level + 1) * m.experienceStep) - 1,

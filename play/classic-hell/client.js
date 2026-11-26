@@ -1,3 +1,126 @@
+// Offline music and effects synthesized locally; no network or audio assets required.
+// This client owns its settings, graph and scheduling lifecycle.
+var clientAudio;
+function audio() {
+  if (clientAudio) return clientAudio;
+  const key = "backmir.audio:" + new URL(import.meta.url).pathname;
+  let prefs = { music: true, effects: true };
+  try { Object.assign(prefs, JSON.parse(localStorage.getItem(key) || "{}")); } catch {}
+  let context, music, effects, active = false, timer, step = 0, nextNote = 0, previous;
+  const voices = new Set(), recent = new Map();
+  const stats = { musicNotes: 0, effects: 0, errors: [] };
+  const usable = () => context?.state === "running" && active && !document.hidden;
+  function tone(bus, frequency, duration, volume, type = "sine", at = context.currentTime, endFrequency) {
+    const voice = context.createOscillator(), envelope = context.createGain();
+    voice.type = type;
+    voice.frequency.setValueAtTime(frequency, at);
+    if (endFrequency) voice.frequency.exponentialRampToValueAtTime(endFrequency, at + duration);
+    envelope.gain.setValueAtTime(0, at);
+    envelope.gain.linearRampToValueAtTime(volume, at + 0.015);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+    voice.connect(envelope).connect(bus);
+    voices.add(voice);
+    voice.onended = () => { voices.delete(voice); voice.disconnect(); envelope.disconnect(); };
+    voice.start(at); voice.stop(at + duration + 0.02);
+  }
+  const melody = [69, 72, 76, 79, 76, 72, 74, 76, 67, 69, 72, 76, 74, 72, 69, 67,
+    65, 69, 72, 76, 72, 69, 67, 69, 64, 67, 71, 74, 71, 67, 69, 0];
+  const hz = (note) => 440 * 2 ** ((note - 69) / 12);
+  function scheduleMusic() {
+    if (!usable() || !prefs.music) return;
+    if (nextNote < context.currentTime) nextNote = context.currentTime;
+    while (nextNote < context.currentTime + 0.25) {
+      const note = melody[step % melody.length];
+      if (note) { tone(music, hz(note), 1.15, 0.18, "sine", nextNote); stats.musicNotes++; }
+      if (step % 4 === 0) tone(music, hz([45, 43, 41, 40][Math.floor(step / 8) % 4]), 2.2, 0.13, "triangle", nextNote);
+      step++; nextNote += 0.48;
+    }
+  }
+  function lifecycle() {
+    const running = active && !document.hidden;
+    if (music) music.gain.value = running && prefs.music ? 0.22 : 0;
+    if (effects) effects.gain.value = running && prefs.effects ? 0.3 : 0;
+    if (running && context?.state === "running" && prefs.music) {
+      if (!timer) {
+        nextNote = Math.max(nextNote, context.currentTime);
+        scheduleMusic(); timer = setInterval(scheduleMusic, 150);
+      }
+    } else { clearInterval(timer); timer = undefined; }
+    if (!running) {
+      for (const voice of voices) { try { voice.stop(); } catch {} }
+      if (context?.state === "running") void context.suspend().catch(() => {});
+    }
+  }
+  async function unlock() {
+    if (!active || document.hidden) return;
+    try {
+      const Audio = globalThis.AudioContext || globalThis.webkitAudioContext;
+      if (!Audio) return;
+      if (!context) {
+        context = new Audio(); music = context.createGain(); effects = context.createGain();
+        music.connect(context.destination); effects.connect(context.destination);
+        context.addEventListener("statechange", lifecycle);
+      }
+      if (context.state === "suspended") await context.resume();
+      lifecycle();
+    } catch (error) { if (stats.errors.length < 5) stats.errors.push(error.message); }
+  }
+  document.addEventListener("pointerdown", unlock, { passive: true });
+  document.addEventListener("keydown", unlock, { passive: true });
+  document.addEventListener("visibilitychange", () => { lifecycle(); if (!document.hidden) void unlock(); });
+  const engine = {
+    update(s) {
+      const playing = s?.stage === "Game", me = s?.me;
+      if (playing !== active) { active = playing; lifecycle(); if (playing) void unlock(); }
+      if (playing && me && previous?.id === me.id && previous.map === me.map && !me.dead) {
+        const moved = Math.max(Math.abs(me.x - previous.x), Math.abs(me.y - previous.y));
+        if (moved > 0 && moved <= 3) engine.packet({ type: "ObjectWalk", data: { ObjectID: me.id } }, me);
+      }
+      previous = playing && me ? { id: me.id, map: me.map, x: me.x, y: me.y } : undefined;
+    },
+    packet(p, me) {
+      if (!usable() || !prefs.effects) return;
+      const data = p.data || {}, own = data.ObjectID === me?.id;
+      let effect;
+      if ((p.type === "Magic" || p.type === "ObjectMagic") && data.Cast && own) effect = "spell";
+      else if ((p.type === "ObjectAttack" || p.type === "ObjectRangeAttack") && own) effect = "attack";
+      else if ((p.type === "ObjectStruck" || p.type === "Struck") && own) effect = "hurt";
+      else if ((p.type === "ObjectWalk" || p.type === "ObjectRun") && own) effect = "step";
+      else if (p.type === "SpiritLevelUp" || p.type === "LevelChanged") effect = "level";
+      if (!effect) return;
+      const now = context.currentTime;
+      if (now - (recent.get(effect) ?? -Infinity) < (effect === "step" ? 0.23 : 0.08)) return;
+      recent.set(effect, now); stats.effects++;
+      if (effect === "spell") { tone(effects, 330, 0.32, 0.2, "triangle", now, 990); tone(effects, 660, 0.5, 0.1, "sine", now + 0.08); }
+      else if (effect === "attack") tone(effects, 190, 0.17, 0.22, "triangle", now, 45);
+      else if (effect === "hurt") tone(effects, 110, 0.22, 0.18, "sawtooth", now, 55);
+      else if (effect === "step") tone(effects, 75, 0.07, 0.15, "triangle", now, 35);
+      else [0, 4, 7, 12].forEach((n, i) => tone(effects, hz(72 + n), 0.4, 0.15, "sine", now + i * 0.1));
+    },
+    mount(container) {
+      const language = (typeof i18n === "object" ? i18n.locale : document.documentElement.lang) || "zh";
+      const text = language.startsWith("zh") ? ["背景音乐", "游戏音效"] : language.startsWith("es") ? ["Música", "Efectos de sonido"] : ["Music", "Sound effects"];
+      const box = document.createElement("div"); box.className = "game-audio-settings";
+      box.style.cssText = "display:flex;flex-wrap:wrap;gap:12px;padding:10px 0";
+      ["music", "effects"].forEach((setting, i) => {
+        const label = document.createElement("label"), input = document.createElement("input");
+        label.style.cssText = "display:flex;align-items:center;gap:6px;min-height:44px";
+        input.type = "checkbox"; input.checked = !!prefs[setting]; input.dataset.audio = setting;
+        input.onchange = () => {
+          prefs[setting] = input.checked;
+          try { localStorage.setItem(key, JSON.stringify(prefs)); } catch {}
+          lifecycle(); void unlock();
+        };
+        label.append(input, document.createTextNode(text[i])); box.append(label);
+      });
+      container.append(box);
+    },
+    diagnostics: () => ({ ...stats, state: context?.state || "locked", active, music: prefs.music, effectsEnabled: prefs.effects, voices: voices.size }),
+  };
+  globalThis.backmirAudio = engine;
+  return clientAudio = engine;
+}
+
 // Legacy sprites encode half-opacity shadows as opaque/transparent checkerboards.
 // Reconstruct only connected dark stippling; keep artwork and atlas frames sharp.
 function restoreSpriteShadowPixels(data, width, height, frames) {
@@ -2098,6 +2221,7 @@ async function accept(s) {
     closeNPC();
   }
   state = s;
+  audio().update(s);
   darkAnalytics.observe(s);
   gameAuto.observe(s);
   observeBackupPrompt(s);
@@ -2141,6 +2265,7 @@ async function accept(s) {
   mobile?.update();
 }
 function packet(p, now) {
+  audio().packet(p, state?.me);
   globalThis.darkforgedTelemetry?.packet(p);
   const d = p.data;
   let action = null;
@@ -2460,6 +2585,7 @@ function systemMenu() {
   cancelControl();
   const w = makeWindow("system", i18n.t("system.title"), "system-window");
   w.body.innerHTML = `${gameAccountMarkup()}<p id="game-version"></p><a class="site-system-guide" href="${esc(i18n.path("/Game/games/classic-hell/guides/"))}" target="_blank" rel="noopener">${esc(i18n.t("site.game.guide"))}</a><button id="save-game">${esc(cloudMessages(i18n.locale).saveLocal)}</button><button id="force-update">${esc(i18n.t("system.update"))}</button><button id="cloud-account">${esc(accountPresentation(accountSession.state, i18n.locale).button)}</button><button id="select-character">${esc(i18n.t("system.characters"))}</button><button id="offline-download">${esc(i18n.t("system.offline"))}</button><p id="offline-progress" role="status"></p><small>${esc(i18n.t("system.background"))}</small>`;
+  audio().mount(w.body);
   w.body.prepend(
     i18n.picker({
       beforeSwitch: async () => {
@@ -4025,6 +4151,7 @@ const armedSpells = new Set([
   "BlazingSword",
 ]);
 const selfSpells = new Set([
+  "Poisoning",
   "SummonSpiritServant",
   "Healing",
   "Hiding",
@@ -4136,8 +4263,7 @@ function cast(spell) {
     hover = pointerOverCanvas
       ? hitActor(pointer.x + Math.round(camera.x), pointer.y + Math.round(camera.y), "monster")
       : null,
-    target = desktopSpellTarget(m, state.actors, spell, hover, selected, selfSpells);
-  if (spell === "Poisoning" && !target) return;
+    target = spell === "Poisoning" ? m : desktopSpellTarget(m, state.actors, spell, hover, selected, selfSpells);
   if (
     spell !== "Poisoning" &&
     !selfSpells.has(spell) &&
@@ -546320,6 +546446,7 @@ async function drawPetPortrait(canvas, pet) {
 async function bootMobile() {
   const { mountMobile } = await import("./mobile/entry.c38f71dd717b.js");
   mobile = await mountMobile({
+    audioSettings: (container) => audio().mount(container),
     preserveInspectionAttack: true,
     inspectionCombatHud: true,
     monsterDetails: openMonsterAffixes,

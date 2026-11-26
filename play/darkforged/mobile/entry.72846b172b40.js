@@ -128,6 +128,7 @@ var groups = {
   toggle: ["Thrusting", "HalfMoon", "WhirlwindSlash", "CrossHalfMoon", "DoubleSlash"],
   armed: ["TwinDrakeBlade", "FlamingSword", "CounterAttack", "MentalState", "BlazingSword"],
   self: [
+    "Poisoning",
     "ProtectionField",
     "Rage",
     "Fury",
@@ -198,7 +199,6 @@ var groups = {
     "FlameDisruptor",
     "FrostCrunch",
     "ChainThunder",
-    "Poisoning",
     "GhostBurn",
     "ElectricShock",
     "Purification",
@@ -2379,7 +2379,6 @@ function installV2(ctx, hooks) {
   <div class="m2-zone"><div class="m2-stick" hidden><i></i></div></div>
   <div class="m2-belt-wrap"><div class="m2-belt"></div></div>
   <nav class="m2-nav"></nav>
-  <div class="m2-skills"></div>
   <div class="m2-arrow" hidden></div>
   <div class="m2-aim" hidden><div class="m2-range"></div><div class="m2-reticle"></div><div class="m2-cancel"></div></div>
   <div class="m2-exp"><u></u></div>
@@ -2392,7 +2391,6 @@ function installV2(ctx, hooks) {
     zone = ui.querySelector(".m2-zone"),
     stick = ui.querySelector(".m2-stick"),
     belt = ui.querySelector(".m2-belt"),
-    skillsEl = ui.querySelector(".m2-skills"),
     arrow = ui.querySelector(".m2-arrow"),
     aimEl = ui.querySelector(".m2-aim"),
     sheetEl = ui.querySelector(".m2-sheet"),
@@ -2422,18 +2420,6 @@ function installV2(ctx, hooks) {
   const cycle = button("", () => controller.cycle(), hud, { className: "m2-cyc" });
   cycle.append(icon("target", "\u25CE"));
   cycle.setAttribute("aria-label", t("switchTarget"));
-  const pageBtn = button(
-    "",
-    () => {
-      skillsEl.dataset.page = skillsEl.dataset.page === "1" ? "0" : "1";
-      skillStamp = "";
-      renderSkills();
-    },
-    hud,
-    { className: "m2-pg" },
-  );
-  pageBtn.append(icon("page", "\u21C5"), el("small"));
-  pageBtn.setAttribute("aria-label", t("pageLabel"));
   const attack = el("button", "m2-atk");
   attack.type = "button";
   attack.append(icon("attack", "\u2694\uFE0E", "m2-ic m2-atki"));
@@ -2503,19 +2489,13 @@ function installV2(ctx, hooks) {
     const ax = W - ins.r - 24 - atk / 2,
       ay = H - ins.b - 20 - atk / 2;
     attack.style.cssText = `width:${atk}px;height:${atk}px;left:${at(ax - atk / 2, atk)}px;top:${Math.round(ay - atk / 2)}px`;
-    [180, 148, 116, 84].forEach((deg, i) => {
-      const a = (deg * Math.PI) / 180,
-        b2 = skillButtons[i];
-      if (!b2) return;
-      const cx = ax + r * Math.cos(a);
-      b2.style.cssText = `width:${sk}px;height:${sk}px;left:${at(cx - sk / 2, sk)}px;top:${Math.round(ay - r * Math.sin(a) - sk / 2)}px`;
+    const outerRadius = r + sk + Math.round(8 * k);
+    skillButtons.forEach((b2, i) => {
+      const a = ((180 - (i % 4) * 30) * Math.PI) / 180;
+      const radius = i < 4 ? r : outerRadius;
+      const cx = ax + radius * Math.cos(a);
+      b2.style.cssText = `width:${sk}px;height:${sk}px;left:${at(cx - sk / 2, sk)}px;top:${Math.round(ay - radius * Math.sin(a) - sk / 2)}px`;
     });
-    {
-      const a = (132 * Math.PI) / 180,
-        rr = r + Math.round(52 * k),
-        cx = ax + rr * Math.cos(a);
-      pageBtn.style.cssText = `left:${at(cx - 22, 44)}px;top:${Math.round(ay - rr * Math.sin(a) - 22)}px`;
-    }
     const bottom = compactHudLayout({
       w: W,
       h: H,
@@ -2523,7 +2503,7 @@ function installV2(ctx, hooks) {
       scale: k,
       attack: atk,
       skill: sk,
-      arcRadius: r,
+      arcRadius: outerRadius,
     });
     beltSlots = bottom.count;
     beltWrap.style.cssText = `left:${at(bottom.belt.left, bottom.belt.width)}px;top:${bottom.belt.top}px;width:${bottom.belt.width}px;height:${bottom.belt.height}px`;
@@ -2533,7 +2513,7 @@ function installV2(ctx, hooks) {
     const pos = targetCyclePosition({ w: W, h: H, insets: ins, attack: atk, skill: sk, radius: r });
     cycle.style.cssText = `left:${at(pos.left, 44)}px;top:${pos.top}px;width:44px;height:44px`;
     updateBeltHints();
-    const rects = [attack, cycle, loot, pageBtn, ...skillButtons].map((n) => ({
+    const rects = [attack, cycle, loot, ...skillButtons].map((n) => ({
       left: parseFloat(n.style.left),
       top: parseFloat(n.style.top),
       width: parseFloat(n.style.width) || 44,
@@ -2541,7 +2521,7 @@ function installV2(ctx, hooks) {
     }));
     combatBounds = combatTouchBounds(rects, { w: W, h: H, hand: prefs.hand });
     combatZone.style.cssText = `left:${combatBounds.left}px;top:${combatBounds.top}px;width:${combatBounds.right - combatBounds.left}px;height:${combatBounds.bottom - combatBounds.top}px`;
-    arcTop = ay - r * Math.sin((84 * Math.PI) / 180) - sk / 2;
+    arcTop = ay - outerRadius - sk / 2;
     fitCard();
     placeTray();
     placeZone();
@@ -2601,7 +2581,7 @@ function installV2(ctx, hooks) {
     if (!r.width || !r.height) return;
     if (canvas) {
       const c = turn.localRect(canvas),
-        circles = [attack, cycle, pageBtn, loot, ...skillButtons]
+        circles = [attack, cycle, loot, ...skillButtons]
           .filter((n) => !n.hidden)
           .map((n) => {
             const b2 = turn.localRect(n);
@@ -2621,7 +2601,14 @@ function installV2(ctx, hooks) {
         r = turn.localRect(mm);
       }
     }
-    const box = sideNavigation(r);
+    let box = sideNavigation(r);
+    const overlaps = [attack, cycle, loot, ...skillButtons].some((node) => {
+      const c = turn.localRect(node), x = c.left + c.width / 2, y = c.top + c.height / 2;
+      const dx = Math.max(box.left - x, x - box.left - box.width, 0);
+      const dy = Math.max(box.top - y, y - box.top - box.height, 0);
+      return Math.hypot(dx, dy) < c.width / 2 + 3;
+    });
+    if (overlaps) box = { ...box, left: Math.max(insets().l + 8, Math.round(r.left - box.width - 8)), top: Math.round(r.top) };
     nav.style.cssText = `left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px`;
     doc.setAttribute("data-m2-notray", "");
   }
@@ -3047,7 +3034,7 @@ function installV2(ctx, hooks) {
         n.disabled = true;
       });
   }
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 8; i++) {
     const s = el("button", "m2-sk");
     s.type = "button";
     s.innerHTML = '<canvas width="36" height="36"></canvas><b></b><i></i>';
@@ -3056,17 +3043,12 @@ function installV2(ctx, hooks) {
     skillGesture(s, i);
   }
   const skillAt = (i) => {
-    const key = Number(skillsEl.dataset.page || 0) * 4 + i + 1;
+    const key = i + 1;
     return b.state()?.me?.skills.find((s) => s.Key === key);
   };
   function renderSkills() {
-    const s = b.state(),
-      me = s.me,
-      page = Number(skillsEl.dataset.page || 0),
-      bound = me.skills.filter((x) => x.Key >= 1 && x.Key <= 8);
-    pageBtn.hidden = !bound.some((x) => x.Key > 4) && page === 0;
-    pageBtn.querySelector("small").textContent = page + 1 + "/2";
-    const stamp = JSON.stringify([page, me.skills.map((x) => [x.Spell, x.Key])]);
+    const s = b.state(), me = s.me;
+    const stamp = JSON.stringify(me.skills.map((x) => [x.Spell, x.Key]));
     if (stamp !== skillStamp) {
       skillStamp = stamp;
       skillButtons.forEach((node, i) => {
@@ -3079,7 +3061,7 @@ function installV2(ctx, hooks) {
         node.querySelector("b").textContent = sk ? "" : "+";
         node.setAttribute(
           "aria-label",
-          sk ? b.skillName(sk.Spell) : v1t("skills") + " " + (page * 4 + i + 1),
+          sk ? b.skillName(sk.Spell) : v1t("skills") + " " + (i + 1),
         );
       });
     }
@@ -4014,9 +3996,7 @@ function installV2(ctx, hooks) {
       n.append(el("small", "", String(key)));
       n.setAttribute(
         "aria-label",
-        (key <= 4 ? t("page1") : t("page2")) +
-          " \xB7 " +
-          key +
+        v1t("skills") + " " + key +
           (on ? " \xB7 " + b.skillName(on.Spell) : ""),
       );
     }
@@ -4213,6 +4193,7 @@ function installV2(ctx, hooks) {
   function settingsView() {
     const box = el("div", "m2-settings");
     hubEl.append(box);
+    b.audioSettings?.(box);
     const seg = (label, key, options) => {
       const row2 = el("div", "m2-setrow");
       row2.append(el("span", "", label));

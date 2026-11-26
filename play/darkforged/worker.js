@@ -1702,24 +1702,16 @@ function ensureBossEquipment(g, a, d, owner, items) {
   }
 }
 
-// games/darkforged/singleplayer/core/spirit-growth.ts
+// Every companion level costs 100 XP. Preserve earned levels when loading old saves.
 function spiritNextXP(cfg, level) {
-  return level >= cfg.cap ? 0 : (cfg.thresholds?.[level] ?? (level + 1) * cfg.experienceStep);
+  return level >= cfg.cap ? 0 : 100;
 }
 function migrateSpiritProgress(r, cfg) {
   const p = r.spiritProgress;
-  if (!p || p.curveVersion === 3 || !cfg.thresholds) return;
-  const old =
-    p.curveVersion === 2
-      ? [2e3, 8e3, 2e4, 6e4, 1e5, 16e4, 21e4]
-      : Array.from({ length: cfg.cap }, (_, i) => (i + 1) * cfg.experienceStep);
-  let total = old.slice(0, p.level).reduce((sum, x) => sum + x, 0) + p.xp,
-    level = 0;
-  while (level < cfg.cap && total >= spiritNextXP(cfg, level)) {
-    total -= spiritNextXP(cfg, level);
-    level++;
-  }
-  r.spiritProgress = { level, xp: level === cfg.cap ? 0 : total, curveVersion: 3 };
+  if (!p || p.curveVersion === 4) return;
+  let level = p.level, xp = p.xp;
+  while (level < cfg.cap && xp >= 100) { xp -= 100; level++; }
+  r.spiritProgress = { level, xp: level >= cfg.cap ? 0 : xp, curveVersion: 4 };
 }
 
 // games/darkforged/singleplayer/core/monster-display.ts
@@ -5610,7 +5602,7 @@ function petAggro(g, source, target) {
 function spiritGrowth(g, r) {
   const cfg = g.rules.adaptations.noviceProgression.spiritGrowth;
   migrateSpiritProgress(r, cfg);
-  const progress = (r.spiritProgress ??= { level: 0, xp: 0, curveVersion: 3 });
+  const progress = (r.spiritProgress ??= { level: 0, xp: 0, curveVersion: 4 });
   return { cfg, progress };
 }
 function shareSpiritExperience(g, r, xp, near2 = r) {
@@ -5695,9 +5687,9 @@ function shareCompanionExperience(g, r, enemy2, xp) {
     p.petXP = Number(p.petXP || 0) + xp;
     while (
       Number(p.petLevel || 0) < cap &&
-      Number(p.petXP) >= (Number(p.petLevel || 0) + 1) * 2e4
+      Number(p.petXP) >= 100
     ) {
-      p.petXP = Number(p.petXP) - (Number(p.petLevel || 0) + 1) * 2e4;
+      p.petXP = Number(p.petXP) - 100;
       p.petLevel = Number(p.petLevel || 0) + 1;
     }
     if (p.petLevel !== level) g.refreshActor(pet);
@@ -6774,13 +6766,6 @@ function summonDream(g, r, d, l) {
   if (!def) throw new LocalizedError(message("core.dream-magic.summonDream.b6561f1b76"));
   const family = spirit || d.Spell === "SummonSkeleton" ? 1 : 2,
     count = spirit ? 1 : stage >= 3 ? 2 : 1;
-  for (const a of pets(g, r).filter(
-    (a2) => a2.special?.dreamFamily === family && a2.definition !== def.Index,
-  )) {
-    a.dead = true;
-    a.hp = 0;
-    a.expires = g.time;
-  }
   const old = pets(g, r).filter((a) => a.definition === def.Index);
   const growth = spirit ? spiritGrowth(g, r) : null;
   const initial = spirit
@@ -6842,7 +6827,7 @@ function castDream(g, r, d, data) {
   if (g.time < Math.max(r.spellAt, r.actionAt, skill.s.CastTime)) return;
   const cost = skillCost(d, l, r.stats);
   if (r.mp < cost) throw new LocalizedError(message("core.dream-magic.castDream.26f1ab23c0"));
-  let target = g.actor(Number(data.TargetID));
+  let target = spell === "Poisoning" ? r : g.actor(Number(data.TargetID));
   const loc = { x: Number(data.Location?.X ?? r.x), y: Number(data.Location?.Y ?? r.y) };
   if (!Number.isFinite(loc.x) || !Number.isFinite(loc.y))
     throw new LocalizedError(message("core.dream-magic.castDream.a817ce95ed"));
@@ -6885,7 +6870,8 @@ function castDream(g, r, d, data) {
       const a = enemy2();
       if (!canReachDreamSpell(g, r, spell, a))
         throw new LocalizedError(message("skill.projectileObstructed"));
-      action = () => hit(a, power(spell === "SoulFireBall" ? "SC" : "MC"));
+      action = () => hit(a, power(spell === "SoulFireBall" ? "SC" : "MC") *
+        (spell === "SoulFireBall" && skill.s.Level >= 4 ? 2 : 1));
       break;
     }
     case "FireBang":
@@ -6971,14 +6957,13 @@ function castDream(g, r, d, data) {
       };
       break;
     case "Poisoning": {
-      const a = enemy2();
       action = () => {
         const duration = (20 + l * 7 + nativeAbility(g, r, "SC") * 2) * 1e3;
-        const b = g.buff(a, "Green", duration, poisoningDamage(l, r.stats), {}, r.id, spell);
-        if (b) {
-          b.interval = 1e3;
+        for (const a of enemies(g, r).filter((a) => distance(r, a) <= d.Range)) {
+          const b = g.buff(a, "Green", duration, poisoningDamage(l, r.stats), {}, r.id, spell);
+          if (b) b.interval = 1e3;
+          g.buff(a, "DreamPoisonArmour", duration, Math.min(100, 4 * l), {}, r.id, spell);
         }
-        g.buff(a, "DreamPoisonArmour", duration, Math.min(100, 4 * l), {}, r.id, spell);
       };
       break;
     }
@@ -7169,7 +7154,7 @@ function castDream(g, r, d, data) {
         );
       if (r.level - def.Level < 3)
         throw new LocalizedError(message("core.dream-magic.castDream.fcd380a876"));
-      if (pets(g, r).length >= (l === 1 ? 1 : 3))
+      if (pets(g, r).filter((pet) => (pet.special?.dreamTamed || pet.special?.tameUntil)).length >= (l === 1 ? 1 : 3))
         throw new LocalizedError(message("core.dream-magic.castDream.b245cda302"));
       action = () => {
         const divisor = Math.max(1, Math.trunc((70 - nativeAbility(g, r, "MC")) / 10));
@@ -7591,7 +7576,8 @@ function completeMagic(g, r, target, e) {
       if (def.Level > r.level + 2 || !def.CanTame) return;
       const pets2 = Object.values(g.maps)
         .flatMap((m) => m.actors)
-        .filter((a) => a.friendly && a.master === r.id && !a.dead);
+        .filter((a) => a.friendly && a.master === r.id && !a.dead &&
+          (a.special?.tameUntil || a.special?.dreamTamed));
       if (
         def.IsBoss &&
         pets2.filter((a) => g.monsters.get(a.definition)?.IsBoss).length >=
@@ -7777,7 +7763,7 @@ function castMagic(g, r, data) {
   if (r.stats.ManaPenaltyPercent > 0) cost += Math.trunc((cost * r.stats.ManaPenaltyPercent) / 100);
   if (spell === "Plague") cost = (r.stats.MaxSC || 0) + (r.stats.MinSC || 0);
   if (r.mp < cost) throw new LocalizedError(message("core.magic.castMagic.26f1ab23c0"));
-  let target = g.actor(Number(data.TargetID));
+  let target = spell === "Poisoning" ? r : g.actor(Number(data.TargetID));
   const loc = {
     x: Number(data.Location?.X ?? r.x),
     y: Number(data.Location?.Y ?? r.y),
@@ -7971,7 +7957,8 @@ function castMagic(g, r, data) {
     case "SoulFireBall": {
       const enemy2 = requireEnemy();
       action = () => {
-        let damage = power(spell === "SoulFireBall" ? "SC" : "MC");
+        let damage = power(spell === "SoulFireBall" ? "SC" : "MC") *
+          (spell === "SoulFireBall" && level >= 4 ? 2 : 1);
         if (spell === "ThunderBolt" && g.monsters.get(enemy2.definition)?.Undead)
           damage = Math.trunc(damage * 1.5);
         const e = g.schedule(
@@ -8204,7 +8191,7 @@ function castMagic(g, r, data) {
       break;
     }
     case "Poisoning": {
-      const enemy2 = requireEnemy(),
+      const targets = enemies2().filter((a) => targetableMonster(a) && distance(r, a) <= (d.Range || 7)),
         poison = [...r.equipment, ...r.inventory].find(
           (i) =>
             i &&
@@ -8215,7 +8202,7 @@ function castMagic(g, r, data) {
       const shape = poison ? g.defs.get(poison.id).Shape : 1;
       action = () => {
         const n = power("SC");
-        g.deferBuff(
+        for (const enemy2 of targets) g.deferBuff(
           r,
           enemy2,
           shape === 1 ? "Green" : "Red",
@@ -8246,13 +8233,6 @@ function castMagic(g, r, data) {
       const consume = existing
         ? () => {}
         : reagent(0, spell === "SummonSkeleton" ? 1 : spell === "SummonShinsu" ? 5 : 2);
-      if (
-        !existing &&
-        Object.values(g.maps)
-          .flatMap((m) => m.actors)
-          .filter((a) => a.friendly && a.master === r.id && !a.dead).length >= 2
-      )
-        throw new LocalizedError(message("core.magic.castMagic.23fe292b10"));
       action = () => {
         if (!existing) g.levelSkill(r, s);
         consume();
@@ -14104,6 +14084,29 @@ var Game7 = class {
       });
     return true;
   }
+  transferGroundLoot(r, a) {
+    if (a.gold) {
+      r.gold += a.gold;
+      this.emit("GainedGold", { Gold: a.gold });
+    } else if (a.item && !this.give(r, a.item)) return false;
+    return true;
+  }
+  autoLootNearby(r) {
+    if (r.dead || this.time < (this.lootScanAt || 0)) return;
+    this.lootScanAt = this.time + 200;
+    const map = this.map(r.map);
+    map.actors = map.actors.filter((a) => {
+      if (
+        a.kind !== "item" ||
+        a.map !== r.map ||
+        distance(r, a) > 5 ||
+        (a.expires && a.expires <= this.time) ||
+        a.item?.id === this.rules.adaptations.adventure.chestId ||
+        (!a.gold && this.defs.get(a.item?.id)?.Type !== "Potion")
+      ) return true;
+      return !this.transferGroundLoot(r, a);
+    });
+  }
   count(r, id) {
     return [...r.questInventory, ...r.inventory].reduce(
       (n, i) => n + (i?.id === id ? i.count : 0),
@@ -14174,9 +14177,9 @@ var Game7 = class {
         max = Number(s.maxPetLevel || 0);
       if (pet.special?.dreamPet || level >= max) continue;
       s.petXP = Number(s.petXP || 0) + xp * ([18, 23, 38].includes(pet.ai || 0) ? 3 : 1);
-      if (Number(s.petXP) >= (level + 1) * 2e4) {
-        s.petXP = Number(s.petXP) - (level + 1) * 2e4;
-        s.petLevel = level + 1;
+      while (Number(s.petLevel || 0) < max && Number(s.petXP) >= 100) {
+        s.petXP = Number(s.petXP) - 100;
+        s.petLevel = Number(s.petLevel || 0) + 1;
         this.refreshActor(pet);
       }
     }
@@ -14736,7 +14739,7 @@ var Game7 = class {
     if (isSpirit(this, a) && a.master) {
       const owner2 = this.roles.find((r) => r.id === a.master);
       if (owner2) {
-        owner2.spiritProgress = { level: 0, xp: 0, curveVersion: 3 };
+        owner2.spiritProgress = { level: 0, xp: 0, curveVersion: 4 };
         this.say(message("skill.spirit.died"));
       }
     }
@@ -15457,6 +15460,7 @@ var Game7 = class {
     this.map(r.map).actors = this.map(r.map).actors.filter(
       (a) => !a.expires || a.expires > this.time,
     );
+    this.autoLootNearby(r);
     challengeTick(this, r);
     trialTick(this, r);
     treasureTick(this, r);
@@ -16231,10 +16235,7 @@ var Game7 = class {
           openTreasure(this, r, a);
           break;
         }
-        if (a.gold) {
-          r.gold += a.gold;
-          this.emit("GainedGold", { Gold: a.gold });
-        } else if (a.item && !this.give(r, a.item))
+        if (!this.transferGroundLoot(r, a))
           throw new LocalizedError(message("core.game.command.f4f8709c7f"));
         this.map(r.map).actors = this.map(r.map).actors.filter((m) => m !== a);
         break;
@@ -18690,15 +18691,17 @@ function validateSave(value, rules) {
       if (
         !p ||
         !cfg ||
-        ![void 0, 1, 2, 3].includes(p.curveVersion) ||
+        ![void 0, 1, 2, 3, 4].includes(p.curveVersion) ||
         !integer(p.level, 0, cfg.cap) ||
         !integer(
           p.xp,
           0,
           p.level === cfg.cap
             ? 0
-            : (p.curveVersion === 3
+            : (p.curveVersion === 4
                 ? spiritNextXP(cfg, p.level)
+                : p.curveVersion === 3
+                  ? (cfg.thresholds?.[p.level] ?? (p.level + 1) * cfg.experienceStep)
                 : p.curveVersion === 2
                   ? [2e3, 8e3, 2e4, 6e4, 1e5, 16e4, 21e4][p.level]
                   : (p.level + 1) * cfg.experienceStep) - 1,
