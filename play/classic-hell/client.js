@@ -2543,7 +2543,7 @@ async function accountAction(route, data) {
     say(mobile.startMessage());
     return false;
   }
-  if (entryBusy || controlModeSwitching) return false;
+  if (entryBusy || gistCloud.syncing || controlModeSwitching) return false;
   entryBusy = true;
   const enter = $("#enter-role");
   if (route === "start") {
@@ -4880,7 +4880,15 @@ async function boot() {
       .map((i) => [i.Index, i]),
   );
   effects = new SinglePlayerEffects(effectBindings, drawEffect, metrics.missing, ctx);
-  await accept(await api("entry", {}));
+  $("#entry").inert = true;
+  try {
+    await accept(await api("entry", {}));
+    entryBusy = true;
+    await gistCloud.sync();
+  } finally {
+    entryBusy = false;
+    $("#entry").inert = false;
+  }
   if (mobileMode) {
     try {
       await bootMobile();
@@ -546263,13 +546271,19 @@ const gistCloud = createGistCloud({
     build: document.querySelector('meta[name="dream-build"]')?.content,
   }, eventCursor)).saveJson,
   preview: saveJson => localAPI("cloud/preview", { saveJson }, eventCursor),
+  onSyncState: (busy, status) => {
+    $("#entry").inert = busy;
+    const m = gistCloudMessages(i18n.locale);
+    $("#status").textContent = m[status.code] || m.errors[status.code] || m.errors.network;
+  },
   restore: async saveJson => {
+    const panelWasOpen = !!cloudPanelWindow?.el.isConnected;
     if (state.stage === "Game") await command("LogOut");
     await accept(await localAPI("cloud/restore", { saveJson }, eventCursor));
     rolesStamp = null;
     renderNativeRoles();
     if (state.roles?.length && !$("#name")?.value.trim()) $("#new-character").hidden = true;
-    cloudAccountWindow();
+    if (panelWasOpen) cloudAccountWindow();
   },
 });
 function cloudAccountWindow() {
