@@ -2904,6 +2904,7 @@ function resize() {
     screen = mobile.layout();
     canvas.width = screen.w;
     canvas.height = screen.h;
+    syncAutoBattleViewport();
     return;
   }
   const view = desktopDisplay
@@ -2933,14 +2934,7 @@ function resize() {
     if (el.style.top.endsWith("px"))
       el.style.top = Math.max(0, Math.min(parseFloat(el.style.top), screen.h - 40)) + "px";
   }
-  const key = view.w + "x" + view.h;
-  if (desktopDisplay && viewportSent !== key) {
-    viewportSent = key;
-    api("viewport", { width: view.w, height: view.h }).catch((e) => {
-      viewportSent = "";
-      metrics.errors.push(e.message);
-    });
-  }
+  syncAutoBattleViewport();
   updateDesktopDisplayReadout();
   syncDesktopFullscreen();
 }
@@ -544592,7 +544586,7 @@ function autoBattleCopy() {
       "自动战斗",
       "启用自动战斗",
       "自动扫图（仅当前地图）",
-      "自动拾取（5格内）",
+      "自动拾取（屏幕内）",
       "技能",
       "只释放已绑定 F1–F8 的技能。先维持生存和召唤，再按预计有效总伤害 ÷ 实际耗蓝选择伤害技能。",
       "未绑定",
@@ -544633,7 +544627,7 @@ function autoBattleCopy() {
       "Auto battle",
       "Enable auto battle",
       "Sweep current map",
-      "Auto loot within 5 tiles",
+      "Auto loot on screen",
       "Skills",
       "Only skills bound to F1–F8 can cast. Survival and summons take priority; damage skills maximize estimated useful damage / actual mana cost.",
       "Unbound",
@@ -544674,7 +544668,7 @@ function autoBattleCopy() {
       "Combate automático",
       "Activar combate automático",
       "Explorar el mapa actual",
-      "Recoger en un radio de 5 casillas",
+      "Recoger en pantalla",
       "Habilidades",
       "Solo se lanzan habilidades asignadas a F1–F8. Supervivencia e invocaciones tienen prioridad; el daño se elige según daño útil estimado / coste real de maná.",
       "Sin tecla",
@@ -544969,6 +544963,20 @@ autoBattleLaunch.id = "auto-battle-launch";
 autoBattleLaunch.textContent = autoBattleCopy()[0];
 autoBattleLaunch.onclick = openAutoBattle;
 utilityActionHost().append(autoBattleLaunch);
+
+function syncAutoBattleViewport() {
+  const key = screen.w + "x" + screen.h + ":" + mobileMode;
+  if (!screen.w || !screen.h || viewportSent === key) return;
+  viewportSent = key;
+  api("viewport", {
+    width: screen.w,
+    height: screen.h,
+    mobile: mobileMode,
+  }).catch((e) => {
+    viewportSent = "";
+    metrics.errors.push(e.message);
+  });
+}
 
 
 const assistButton = document.createElement("button");
@@ -554087,6 +554095,7 @@ async function bootMobile() {
       screen = nextScreen;
       if (canvas.width !== screen.w) canvas.width = screen.w;
       if (canvas.height !== screen.h) canvas.height = screen.h;
+      syncAutoBattleViewport();
     },
     pause: (paused) => localAPI("pause", { paused }, eventCursor),
     refresh: async () => accept(await localAPI("state", {}, eventCursor)),

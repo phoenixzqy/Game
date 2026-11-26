@@ -5600,7 +5600,9 @@ function petAggro(g, source, target) {
   return false;
 }
 function spiritGrowth(g, r) {
-  const cfg = g.rules.adaptations.noviceProgression.spiritGrowth;
+  const skill = g.skill(r, "SummonSpiritServant");
+  const cfg = { ...g.rules.adaptations.noviceProgression.spiritGrowth,
+    cap: summonPetCap(skill?.level || 1, r.stats["PetLevel:SummonSpiritServant"] || 0) };
   migrateSpiritProgress(r, cfg);
   const progress = (r.spiritProgress ??= { level: 0, xp: 0, curveVersion: 4 });
   return { cfg, progress };
@@ -6777,7 +6779,7 @@ function summonDream(g, r, d, l) {
             (id === 116 ? 3 : 0) +
             (r.stats["PetLevel:" + d.Spell] || 0),
         ),
-    cap = spirit ? growth.cfg.cap : Math.min(7, initial + 2);
+    cap = summonPetCap(l, r.stats["PetLevel:" + d.Spell] || 0);
   for (const a of old) {
     a.special.petLevel = Math.max(initial, Number(a.special.petLevel || 0));
     a.special.maxPetLevel = cap;
@@ -6800,6 +6802,7 @@ function summonDream(g, r, d, l) {
       ...a.special,
       dreamPet: true,
       dreamFamily: family,
+      summonSpell: d.Spell,
       petLevel: initial,
       maxPetLevel: cap,
       ...(growth ? { petXP: growth.progress.xp } : {}),
@@ -7523,6 +7526,9 @@ function completeMagic(g, r, target, e) {
         .flatMap((m) => m.actors)
         .find((a) => a.master === r.id && a.definition === def2.Index && !a.dead);
       if (old) {
+        old.special.maxPetLevel = summonPetCap(level);
+        old.special.summonSpell = e.spell;
+        g.refreshActor(old);
         g.bringPets(r);
         old.x = spot.x;
         old.y = spot.y;
@@ -7532,7 +7538,8 @@ function completeMagic(g, r, target, e) {
       pet.friendly = true;
       pet.master = r.id;
       pet.special.petLevel = level;
-      pet.special.maxPetLevel = e.spell === "SummonSkeleton" ? 4 + level : 1 + level * 2;
+      pet.special.maxPetLevel = summonPetCap(level);
+      pet.special.summonSpell = e.spell;
       g.refreshActor(pet);
       pet.hp = pet.maxHP;
       pet.actionAt = g.time + 1e3;
@@ -14102,7 +14109,7 @@ var Game7 = class {
         distance(r, a) > 5 ||
         (a.expires && a.expires <= this.time) ||
         a.item?.id === this.rules.adaptations.adventure.chestId ||
-        (!a.gold && this.defs.get(a.item?.id)?.Type !== "Potion")
+        (!a.gold && !["Potion", "ExperienceScroll"].includes(this.defs.get(a.item?.id)?.Type))
       ) return true;
       return !this.transferGroundLoot(r, a);
     });
@@ -14264,6 +14271,7 @@ var Game7 = class {
     return a.buffs[a.buffs.length - 1];
   }
   refreshActor(a) {
+    refreshSummonLevelCap(this, a);
     if (a.kind === "player") return this.refresh(a);
     const def = this.monsters.get(a.definition);
     if (!def) return;
@@ -17059,9 +17067,9 @@ var Game7 = class {
         ),
         spiritGrowth: this.rules.adaptations.noviceProgression?.spiritGrowth
           ? {
-              cap: this.rules.adaptations.noviceProgression.spiritGrowth.cap,
+              cap: spiritGrowth(this, role).cfg.cap,
               nextXP: spiritNextXP(
-                this.rules.adaptations.noviceProgression.spiritGrowth,
+                spiritGrowth(this, role).cfg,
                 role.spiritProgress?.level || 0,
               ),
             }
@@ -17433,6 +17441,52 @@ var Game7 = class {
     this.npc = 0;
   }
 };
+
+// Summon growth is based on effective spell rank; earned levels and XP are preserved.
+function summonPetCap(level, bonus = 0) {
+  return (
+    1 + 2 * Math.max(1, Math.trunc(Number(level) || 1)) + Math.max(0, bonus)
+  );
+}
+function refreshSummonLevelCap(g, pet) {
+  if (
+    pet.kind !== "monster" ||
+    !pet.friendly ||
+    !pet.master ||
+    typeof pet.special?.petLevel !== "number" ||
+    pet.special.dreamTamed
+  )
+    return;
+  const owner = g.roles.find((r) => r.id === pet.master);
+  const def = g.monsters.get(pet.definition);
+  if (!owner || !def) return;
+  const ids = {
+    SummonSkeleton: 29,
+    SummonShinsu: 14,
+    AdvancedSummon: 62,
+    SummonTiger: def.DreamOriginalId === 116 ? 116 : 99,
+    SummonMoonSpirit: 144,
+  };
+  const native = {
+    SummonSkeleton: "SkeletonName",
+    SummonShinsu: "ShinsuName",
+    SummonHolyDeva: "AngelName",
+  };
+  const spell =
+    pet.special.summonSpell ||
+    (def.Index === g.rules.adaptations.noviceProgression?.spiritMonster
+      ? "SummonSpiritServant"
+      : Object.keys(ids).find((s) => def.DreamOriginalId === ids[s]) ||
+        Object.keys(native).find(
+          (s) => def.Name === g.rules.monsterSettings?.[native[s]],
+        ));
+  const skill = spell && g.skill(owner, spell);
+  if (skill)
+    pet.special.maxPetLevel = summonPetCap(
+      skill.level,
+      owner.stats["PetLevel:" + spell] || 0,
+    );
+}
 
 // Shared by the three offline workers and their settings UI.
 var AUTO_BATTLE_SKILLS = {
@@ -18017,20 +18071,73 @@ function autoBattleRoute(g, r, api, goal, range, state, explore = false) {
   }
   return fallback?.dir ?? -1;
 }
+// The viewport is transient worker state and follows desktop resolution/mobile layout.
+var autoBattleView = { width: 1280, height: 768, mobile: false };
+function autoBattleSetViewport(data) {
+  const width = Number(data?.width),
+    height = Number(data?.height);
+  if (
+    Number.isFinite(width) &&
+    Number.isFinite(height) &&
+    width > 0 &&
+    height > 0
+  )
+    autoBattleView = {
+      width: Math.min(4096, width),
+      height: Math.min(4096, height),
+      mobile: data.mobile === true,
+    };
+}
+function autoBattleOnScreen(r, a) {
+  // Match the game renderer's 48x32 grid and player camera offset.
+  const { width, height, mobile } = autoBattleView;
+  const x = (a.x - r.x) * 48 + width / 2;
+  const y = (a.y - r.y) * 32 + height / 2 - (mobile ? 35 : 90) + 12;
+  return x >= 0 && x <= width && y >= 0 && y <= height;
+}
+function autoBattleLootAllowed(g, r, cfg, a, api) {
+  return (
+    cfg.lootEnabled &&
+    a.map === r.map &&
+    (!a.expires || a.expires > g.time) &&
+    autoBattleAllowsLoot(
+      cfg.loot,
+      a,
+      g.defs,
+      g.rules.adaptations.adventure?.chestId,
+      api.qualityPoints,
+    )
+  );
+}
+function autoBattleMove(
+  g,
+  r,
+  api,
+  goal,
+  range,
+  state,
+  explore = false,
+  direction,
+) {
+  const dir =
+    direction ?? autoBattleRoute(g, r, api, goal, range, state, explore);
+  if (dir < 0) return false;
+  const [dx, dy] = autoBattleVectors[dir];
+  const next = { ...r, x: r.x + dx, y: r.y + dy };
+  const run =
+    (explore || autoBattleDistance(next, goal) > range) &&
+    autoBattleRoute(g, next, api, goal, range, state, explore) === dir;
+  return (run && g.move(r, dir, 2)) || g.move(r, dir, 1);
+}
 function autoBattleLoot(g, r, cfg, state, api) {
   if (!cfg.lootEnabled || g.time < state.lootAt) return;
   state.lootAt = g.time + 200;
   const ground = g.map(r.map).actors;
+  let picked = false;
   for (const a of [...ground]) {
     if (
       autoBattleDistance(r, a) > 5 ||
-      !autoBattleAllowsLoot(
-        cfg.loot,
-        a,
-        g.defs,
-        g.rules.adaptations.adventure?.chestId,
-        api.qualityPoints,
-      )
+      !autoBattleLootAllowed(g, r, cfg, a, api)
     )
       continue;
     if (a.gold > 0) {
@@ -18043,9 +18150,11 @@ function autoBattleLoot(g, r, cfg, state, api) {
     const index = ground.indexOf(a);
     if (index >= 0) ground.splice(index, 1);
     state.rejectedLoot.delete(a.id);
+    picked = true;
   }
   for (const [id, until] of state.rejectedLoot)
     if (until <= g.time) state.rejectedLoot.delete(id);
+  return picked;
 }
 function autoBattleTick(g, r, api) {
   let cfg = r.assist?.autoBattle;
@@ -18071,9 +18180,8 @@ function autoBattleTick(g, r, api) {
   }
   if (!g.geometry.has(r.map)) return;
   if (g.time < state.pauseUntil) return;
-  autoBattleLoot(g, r, cfg, state, api);
+  if (autoBattleLoot(g, r, cfg, state, api)) return;
   if (
-    !cfg.enabled ||
     mountedItem(g, r) ||
     g.safe(r) ||
     g.npc ||
@@ -18092,6 +18200,31 @@ function autoBattleTick(g, r, api) {
     )
   )
     return;
+  // Reserve the next action for eligible on-screen loot before any combat or sweep.
+  const loot = g
+    .map(r.map)
+    .actors.filter(
+      (a) =>
+        autoBattleLootAllowed(g, r, cfg, a, api) &&
+        autoBattleOnScreen(r, a) &&
+        (state.rejectedLoot.get(a.id) || 0) <= g.time,
+    )
+    .sort(
+      (a, b) =>
+        autoBattleDistance(r, a) - autoBattleDistance(r, b) || a.id - b.id,
+    );
+  for (const a of loot) {
+    if (autoBattleDistance(r, a) <= 5 || g.time < state.routeAt) return;
+    const dir = autoBattleRoute(g, r, api, a, 5, state);
+    if (dir < 0) {
+      state.rejectedLoot.set(a.id, g.time + 1000);
+      continue;
+    }
+    state.routeAt = g.time + 200;
+    if (autoBattleMove(g, r, api, a, 5, state, false, dir)) return;
+    state.rejectedLoot.set(a.id, g.time + 1000);
+  }
+  if (!cfg.enabled) return;
   const context = autoBattleContext(g, r, cfg, api);
   const decision = {
     Warrior: autoBattleWarrior,
@@ -18131,26 +18264,7 @@ function autoBattleTick(g, r, api) {
   if (!cfg.sweep || g.time < state.routeAt) return;
   state.routeAt = g.time + Math.max(200, r.actionAt - g.time);
   state.visited.set(r.y * g.geometry.get(r.map).width + r.x, g.time);
-  const loot = g
-    .map(r.map)
-    .actors.filter(
-      (a) =>
-        autoBattleAllowsLoot(
-          cfg.loot,
-          a,
-          g.defs,
-          g.rules.adaptations.adventure?.chestId,
-          api.qualityPoints,
-        ) &&
-        cfg.lootEnabled &&
-        (state.rejectedLoot.get(a.id) || 0) <= g.time &&
-        autoBattleDistance(r, a) > 5,
-    )
-    .sort(
-      (a, b) =>
-        autoBattleDistance(r, a) - autoBattleDistance(r, b) || a.id - b.id,
-    )[0];
-  const goal = loot || nearest;
+  const goal = nearest;
   const hurtPet =
     r.job === "Taoist" &&
     Object.values(g.maps)
@@ -18174,11 +18288,7 @@ function autoBattleTick(g, r, api) {
           ),
         );
   // Approach to one tile if already in nominal range but no usable cast exists (e.g. a wall).
-  const range = loot
-    ? 5
-    : goal && autoBattleDistance(r, goal) <= ranged
-      ? 1
-      : ranged;
+  const range = goal && autoBattleDistance(r, goal) <= ranged ? 1 : ranged;
   const routeGoal = hurtPet || goal;
   let dir = routeGoal
     ? autoBattleRoute(
@@ -18193,25 +18303,20 @@ function autoBattleTick(g, r, api) {
   if (routeGoal && dir < 0) state.routeAt = g.time + 1000;
   const exploring = dir < 0;
   if (exploring) dir = autoBattleRoute(g, r, api, null, 0, state, true);
-  if (dir >= 0) {
-    const [dx, dy] = autoBattleVectors[dir];
-    const next = { ...r, x: r.x + dx, y: r.y + dy };
-    const stopRange = hurtPet ? g.skill(r, "Healing").d.Range : range;
-    // Run only when the next route step stays straight and does not overshoot.
-    // Both steps use the same portal/obstacle checks as path finding.
-    const run =
-      (exploring || autoBattleDistance(next, routeGoal) > stopRange) &&
-      autoBattleRoute(
-        g,
-        next,
-        api,
-        exploring ? null : routeGoal,
-        stopRange,
-        state,
-        exploring,
-      ) === dir;
-    if (!run || !g.move(r, dir, 2)) g.move(r, dir, 1);
-  } else state.routeAt = g.time + 1000;
+  const stopRange = hurtPet ? g.skill(r, "Healing").d.Range : range;
+  if (
+    !autoBattleMove(
+      g,
+      r,
+      api,
+      exploring ? null : routeGoal,
+      stopRange,
+      state,
+      exploring,
+      dir,
+    )
+  )
+    state.routeAt = g.time + 1000;
 }
 function installAutoBattle(Game, api) {
   const tick = Game.prototype.tick,
@@ -19774,14 +19879,14 @@ function validateSave(value, rules) {
         !p ||
         !cfg ||
         ![void 0, 1, 2, 3, 4].includes(p.curveVersion) ||
-        !integer(p.level, 0, cfg.cap) ||
+        !integer(p.level, 0, p.curveVersion === 4 ? 65535 : cfg.cap) ||
         !integer(
           p.xp,
           0,
-          p.level === cfg.cap
+          p.curveVersion !== 4 && p.level === cfg.cap
             ? 0
             : (p.curveVersion === 4
-                ? spiritNextXP(cfg, p.level)
+                ? 100
                 : p.curveVersion === 3
                   ? (cfg.thresholds?.[p.level] ?? (p.level + 1) * cfg.experienceStep)
                 : p.curveVersion === 2
@@ -20996,6 +21101,7 @@ async function request(route, data, after) {
     return game.snapshot(-1, viewRange);
   }
   if (route === "viewport") {
+    autoBattleSetViewport(data);
     viewRange = viewportActorRange(data?.width, data?.height);
     return { viewRange };
   }
