@@ -15603,11 +15603,11 @@ var Game7 = class {
         followFocus && r.special?.petCommandTarget
           ? this.actor(Number(r.special.petCommandTarget))
           : void 0;
-      const focus = followFocus ? this.actor(r.target) : void 0;
       if (validEnemy(ordered2)) target = ordered2;
-      else if (validEnemy(focus)) target = focus;
-      else if (!validEnemy(target))
-        target = this.map(a.map).actors.find((m) => validEnemy(m) && (companion || distance(m, a) <= 8));
+      else
+        target = this.map(a.map).actors
+          .filter((m) => validEnemy(m) && (companion || distance(m, a) <= 8))
+          .sort((x, y) => distance(x, r) - distance(y, r) || x.id - y.id)[0];
     } else if (!target || target.dead || target.map !== a.map) {
       const enemies2 = [
         r,
@@ -17486,7 +17486,7 @@ var AUTO_BATTLE_SKILLS = {
     "PoisonCloud",
   ],
 };
-function autoBattleSettings(value) {
+function autoBattleSettings(value, catalog = [], migrateDefaults = true) {
   const strings = (v) =>
     Array.isArray(v)
       ? [...new Set(v.filter((x) => typeof x === "string" && x.length <= 80))]
@@ -17495,20 +17495,50 @@ function autoBattleSettings(value) {
     Array.isArray(v)
       ? [...new Set(v.filter((x) => Number.isSafeInteger(x) && x >= 0))]
       : [];
+  const all = [...catalog];
+  const options = {
+    ids: all.map((d) => d.Index),
+    types: [...new Set(all.map((d) => d.Type))],
+    grades: [...new Set(all.map((d) => String(d.Grade || "None")))],
+    tiers: [...new Set(all.map((d) => d.DreamGrade).filter(Number.isFinite))],
+    qualities: ["normal", "exceptional", "goldExceptional"],
+  };
+  const raw = value?.loot;
+  // The old untouched template contained five empty arrays and enabled gold.
+  const initial =
+    !raw ||
+    (migrateDefaults &&
+      raw.version === undefined &&
+      raw.gold !== false &&
+      Object.keys(options).every(
+        (k) => Array.isArray(raw[k]) && !raw[k].length,
+      ));
+  const selected = (key) => {
+    if (initial || (raw.version === 2 && !Array.isArray(raw[key])))
+      return options[key];
+    const selected =
+      key === "ids" || key === "tiers" ? ids(raw[key]) : strings(raw[key]);
+    return selected.filter((x) => options[key].includes(x));
+  };
+  const loot = Object.fromEntries(
+    Object.keys(options).map((key) => [key, selected(key)]),
+  );
+  if (!initial && raw.version !== 2) {
+    // Expand the old ID-or-category union before switching to independent gates.
+    loot.ids = all
+      .filter((d) => loot.ids.includes(d.Index) || loot.types.includes(d.Type))
+      .map((d) => d.Index);
+    loot.types = options.types;
+  }
   return {
     enabled: value?.enabled === true,
     sweep: value?.sweep === true,
     lootEnabled: value?.lootEnabled === true,
     skills: Array.isArray(value?.skills) ? strings(value.skills) : null,
     loot: {
-      gold: value?.loot?.gold !== false,
-      ids: ids(value?.loot?.ids),
-      types: strings(value?.loot?.types),
-      grades: strings(value?.loot?.grades),
-      tiers: ids(value?.loot?.tiers),
-      qualities: strings(value?.loot?.qualities).filter((x) =>
-        ["normal", "exceptional", "goldExceptional"].includes(x),
-      ),
+      version: 2,
+      gold: raw?.gold !== false,
+      ...loot,
     },
   };
 }
@@ -17532,7 +17562,9 @@ function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
     def = item && defs.get(item.id);
   return (
     !!def &&
-    (config.ids.includes(item.id) || config.types.includes(def.Type)) &&
+    (config.version === 2
+      ? config.ids.includes(item.id) && config.types.includes(def.Type)
+      : config.ids.includes(item.id) || config.types.includes(def.Type)) &&
     config.grades.includes(String(def.Grade || "None")) &&
     (def.DreamGrade === undefined || config.tiers.includes(def.DreamGrade)) &&
     config.qualities.includes(autoBattleQuality(item, qualityPoints))
@@ -18020,7 +18052,7 @@ function autoBattleTick(g, r, api) {
   if (!cfg) return;
   let state = autoBattleStates.get(r);
   if (!state) {
-    cfg = r.assist.autoBattle = autoBattleSettings(cfg);
+    cfg = r.assist.autoBattle = autoBattleSettings(cfg, g.defs.values());
     state = {
       map: r.map,
       pauseUntil: 0,
@@ -18159,9 +18191,27 @@ function autoBattleTick(g, r, api) {
       )
     : -1;
   if (routeGoal && dir < 0) state.routeAt = g.time + 1000;
-  if (dir < 0) dir = autoBattleRoute(g, r, api, null, 0, state, true);
-  if (dir >= 0) g.move(r, dir, 1);
-  else state.routeAt = g.time + 1000;
+  const exploring = dir < 0;
+  if (exploring) dir = autoBattleRoute(g, r, api, null, 0, state, true);
+  if (dir >= 0) {
+    const [dx, dy] = autoBattleVectors[dir];
+    const next = { ...r, x: r.x + dx, y: r.y + dy };
+    const stopRange = hurtPet ? g.skill(r, "Healing").d.Range : range;
+    // Run only when the next route step stays straight and does not overshoot.
+    // Both steps use the same portal/obstacle checks as path finding.
+    const run =
+      (exploring || autoBattleDistance(next, routeGoal) > stopRange) &&
+      autoBattleRoute(
+        g,
+        next,
+        api,
+        exploring ? null : routeGoal,
+        stopRange,
+        state,
+        exploring,
+      ) === dir;
+    if (!run || !g.move(r, dir, 2)) g.move(r, dir, 1);
+  } else state.routeAt = g.time + 1000;
 }
 function installAutoBattle(Game, api) {
   const tick = Game.prototype.tick,
@@ -18173,7 +18223,10 @@ function installAutoBattle(Game, api) {
   Game.prototype.command = function (type, data = {}) {
     const r = this.me;
     if (r && type === "SetAssist") {
-      const cfg = autoBattleSettings(data.autoBattle ?? r.assist?.autoBattle);
+      const cfg = autoBattleSettings(
+        data.autoBattle ?? r.assist?.autoBattle,
+        this.defs.values(),
+      );
       command.call(this, type, {
         ...data,
         ...(cfg.enabled
