@@ -1,0 +1,316 @@
+*{box-sizing:border-box}body{margin:0;background:#090909;color:#eee;font:13px SimSun,"Songti SC",serif;overflow:hidden}button,input,select{font:inherit;color:inherit}button{cursor:pointer;background:#171817 url('/Game/play/classic-hell/assets/common-ui/button-normal.webp') center/100% 100%;border:1px solid #756649;padding:6px 13px}button:hover{filter:brightness(1.3)}button:disabled{opacity:.45;cursor:default}input,select{background:#111;border:1px solid #7d6941;padding:6px}button:focus-visible{outline:1px solid #ffdc86}#stage{width:100vw;height:100vh;position:relative;overflow:hidden}#world{width:100%;height:100%;display:block;outline:none;image-rendering:pixelated}#location{position:absolute;right:20px;top:12px;text-shadow:1px 1px #000;font-size:14px;color:#e9dbad;pointer-events:none}#target{position:absolute;top:12px;left:50%;transform:translateX(-50%);text-align:center;color:#ffcc99;text-shadow:1px 1px #000;pointer-events:none}#notice{position:absolute;top:28%;left:50%;transform:translateX(-50%);color:#ffe59c;text-shadow:1px 1px 3px #000;pointer-events:none;z-index:50}#hud{position:absolute;width:800px;height:150px;bottom:20px;left:50%;transform:translateX(-50%) scale(var(--ui-scale,1.4));transform-origin:bottom center;background:url('/Game/play/classic-hell/assets/ui-130.png') no-repeat;image-rendering:pixelated;z-index:10}#orb{position:absolute;left:0;top:30px;width:104px;height:80px}#hp-liquid,#mp-liquid{position:absolute;top:0;bottom:0;background:url('/Game/play/classic-hell/assets/ui-148.png');width:50px;clip-path:inset(var(--empty,0%) 0 0 0)}#mp-liquid{left:50px;width:54px;background-position:-50px 0}#hp,#mp{position:absolute;left:5px;top:22px;width:44px;text-align:center;font:10px/20px Arial;text-shadow:1px 1px #000;white-space:pre-line}#mp{left:50px}#level{position:absolute;left:6px;top:109px;font:10px Arial}#name-label{position:absolute;left:7px;top:126px;width:85px;text-align:center;font-size:9px;color:#fff0ba}#native-buttons{position:absolute;left:681px;top:76px;display:flex;gap:3px}#native-buttons button{width:20px;height:20px;border:0;padding:0;background-size:20px 20px}#character{background-image:url('/Game/play/classic-hell/assets/ui-133.png')}#bag{background-image:url('/Game/play/classic-hell/assets/ui-136.png')}#skills{background-image:url('/Game/play/classic-hell/assets/ui-139.png')}#quests{background-image:url('/Game/play/classic-hell/assets/ui-142.png')}#map{background-image:url('/Game/play/classic-hell/assets/ui-145.png')}#menu{position:absolute;left:641px;top:67px;width:20px;height:20px;padding:0;border:0;background:url('/Game/play/classic-hell/assets/ui-149.png');color:transparent}#gold{position:absolute;left:698px;top:122px;font:11px Arial;color:#ffe9a4}#experience{position:absolute;left:9px;top:143px;width:784px;height:7px}#experience i{display:block;height:100%;width:0;background:url('/Game/play/classic-hell/assets/ui-155.png')}#log{position:absolute;left:231px;top:57px;width:400px;height:67px;overflow:hidden;font:10px/16px SimSun;color:#dbd9b4;text-shadow:1px 1px #000}#hotbar{position:absolute;left:160px;bottom:151px;display:flex;gap:3px;padding:3px;background:#12120fe6;border:1px solid #66563a}.hotkey{width:37px;height:37px;padding:0;position:relative;background:#191a17;border:1px solid #837153}.hotkey img{max-width:32px;max-height:30px}.hotkey kbd{position:absolute;left:1px;top:0;font:9px Arial;color:#fff}.hotkey small{position:absolute;bottom:0;right:2px;font:9px Arial;color:#f2dd8c}.window{position:absolute;z-index:25;background:#151613 url('/Game/play/classic-hell/assets/ndlgbk_c.png') repeat;border:1px solid #796b50;box-shadow:0 0 0 2px #111,0 0 0 3px #50472f,4px 6px 15px #000b;color:#ded9be;padding:10px 14px 16px;max-height:calc(100vh - 240px);overflow:auto}.window:before{content:'';height:30px;position:absolute;top:0;left:0;right:0;background:url('/Game/play/classic-hell/assets/ndlgct_c.png') top center repeat-x;pointer-events:none}.window h2{font-size:14px;letter-spacing:5px;font-weight:400;color:#e2d2a4;margin:0 0 16px;padding:1px 0 6px;border-bottom:1px solid #4e4735;cursor:move;position:relative}.window .close{position:absolute;right:7px;top:5px;width:18px;height:18px;padding:0;color:#ccb78d;background:#171713;line-height:12px;z-index:2}#entry{top:20%;left:50%;transform:translateX(-50%);width:500px;max-height:none;text-align:center;padding:28px}#entry h1{font-weight:400;letter-spacing:8px;color:#d7bf7c}#entry p{color:#b9aa85}#roles button{display:block;width:100%;margin:8px 0}#new-character{margin-top:25px}#jobs{display:flex;gap:12px;justify-content:center;margin:15px}#jobs button{min-width:90px;font-size:20px}#status{font:11px Arial;color:#aaa}.bag-window{width:356px;right:25px;top:80px}.bag-grid{position:relative;width:328px;height:206px;background:url('/Game/play/classic-hell/assets/bagitems_c.png');margin:14px 0}.slot{position:absolute;width:34px;height:34px;border:0;padding:0;background:none;display:grid;place-items:center}.slot img{max-width:34px;max-height:34px;image-rendering:pixelated}.slot small{position:absolute;right:1px;bottom:0;font:10px Arial;color:#fff;text-shadow:1px 1px #000}.slot:hover{background:#f1d57322;outline:1px solid #ccb271}.item-details{font:12px/1.8 SimSun;min-height:65px;color:#c8bea0}.money{text-align:right;color:#e8c968}.paperdoll{width:168px;height:234px;background:url('/Game/play/classic-hell/assets/ui-28.png');position:relative}.paperdoll.female{background-image:url('/Game/play/classic-hell/assets/ui-29.png')}.character-window{left:25px;top:80px;width:330px}.char-layout{display:flex;gap:14px}.char-stats{font:11px/1.9 SimSun;color:#c7c1a3}.char-stats p{margin:0 0 4px}.skills-window{left:370px;top:80px;width:295px}.npc-window{left:50%;top:18%;transform:translateX(-50%);width:480px;line-height:1.9}.npc-window a{color:#6dcaf2;cursor:pointer;text-decoration:underline}.npc-window button{margin:4px}.shop-row{display:flex;align-items:center;gap:12px;border-bottom:1px solid #494536;padding:7px}.shop-row img{width:32px;object-fit:contain}.map-window{right:25px;top:65px;width:560px}.map-window canvas{width:528px;height:380px;image-rendering:pixelated;background:#080b08}.map-window select{width:100%;margin-bottom:8px}.map-legend{font:11px/1.6 Arial;color:#b3bda3}#tip{position:fixed;padding:10px;max-width:260px;background:#0d100deF;border:1px solid #786c47;color:#e8ddbd;font:12px/1.7 SimSun;pointer-events:none;z-index:70}#keys{position:absolute;bottom:0;left:0;right:0;height:20px;text-align:center;background:#10120ce8;color:#a3a48f;font:11px/20px Arial;pointer-events:none}[hidden]{display:none!important}
+
+.doll-art{position:absolute;top:0;left:0;pointer-events:none;image-rendering:pixelated}.quest-row{border-bottom:1px solid #494536;padding:10px 0}.shop-row span{flex:1}.character-window{width:370px}.paperdoll{margin-right:30px;flex-shrink:0}
+
+#combat-text{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:12}.damage-number{position:absolute;left:0;top:0;font:12px/1 SimSun,serif;white-space:nowrap;text-shadow:-1px -1px #111,1px -1px #111,-1px 1px #111,1px 1px #111,0 2px 3px #000;will-change:transform,opacity}#world{touch-action:none;user-select:none;-webkit-user-select:none}
+
+#win-skills{width:380px}
+
+.classic-item{font:13px/1.8 SimSun,"Songti SC",serif;color:#eee}.classic-item b{display:block;color:#fff1b0;font-size:14px;margin-bottom:5px}.item-stat{color:#f3e6b7}.classic-item .unmet{color:#ff6565}#tip{background:#081008f5;border:1px solid #8c8158;box-shadow:1px 1px #000;padding:10px 16px;min-width:170px}
+
+[hidden]{display:none!important}#account-form{text-align:left;margin:20px 0}#account-form label{display:block;margin:12px 0}#account-form input{display:block;width:100%;margin-top:7px}#account-error{color:#f39882!important;min-height:18px}#account-actions{display:flex;justify-content:center;gap:10px;margin:18px 0}#status{display:block;line-height:1.6}.system-window{width:300px;left:50%;top:24%;transform:translateX(-50%);text-align:center}.system-window .body>button{display:block;width:100%;margin:12px 0}.system-window small{display:block;margin-top:20px;line-height:1.8}
+
+/* Fixed logical viewport: original assets stay at native scale on PC. */
+#stage{width:var(--game-width,1280px);height:var(--game-height,768px);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(var(--game-scale,1));transform-origin:center}#hud{transform:translateX(-50%)}#hotbar{left:140px;bottom:90px}.hotkey{width:35px;height:35px}.window{max-height:calc(100% - 190px)}#entry{max-height:calc(100% - 50px);top:12%}.char-stats p{white-space:nowrap}
+
+/* Always-visible navigation; markers stay above scenery and below windows. */
+#location{display:none}#minimap{position:absolute;right:12px;top:10px;width:146px;z-index:14;background:#10150feb;border:1px solid #85724b;box-shadow:inset 0 0 0 2px #24251b;color:#e7d8ae;font:12px/1.5 SimSun,"Songti SC",serif}.minimap-heading{display:flex;align-items:center;gap:5px;padding:4px 6px;background:url('/Game/play/classic-hell/assets/ndlgct_c.png') center top repeat-x}.minimap-heading span{flex:1;min-width:0;line-height:1.3;overflow-wrap:anywhere}.minimap-heading button{padding:0;width:18px;height:18px;line-height:16px}.minimap-content{padding:5px 7px}#minimap canvas{display:block;width:128px;height:128px;cursor:crosshair;image-rendering:pixelated}.minimap-legend{font-size:10px;color:#bdb899;margin:4px 0}.map-exits{display:flex;flex-direction:column;gap:3px;max-height:110px;overflow:auto}.map-exit{padding:3px 5px;text-align:left;color:#ffe29a;font-size:11px;line-height:1.5}#portal-markers{position:absolute;inset:0;pointer-events:none;z-index:13}.portal-marker{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;padding:5px 8px;color:#ffe29a;text-shadow:1px 1px #000;background:#101309d9;border:1px solid #c5a45e;pointer-events:auto;font:13px SimSun,"Songti SC",serif}.portal-marker:after{content:'▼';position:absolute;left:calc(50% - 6px);top:100%;color:#ffe29a;text-shadow:0 1px #000}.map-window canvas{height:340px;cursor:crosshair}
+/* Shop and inventory must remain separately clickable at the fixed viewport. */
+#win-shop{left:28px;top:80px;transform:none;width:358px}.shop-balance{text-align:right;color:#e7ce8a;margin:0 0 8px}.shop-row canvas{flex:0 0 36px}
+
+/* Original 222 x 56 skill frame; text aligns with its baked-in level label. */
+#win-skills{width:380px}.skill-row{display:grid;grid-template-columns:222px 78px;gap:4px 10px;padding:8px 0;border-bottom:1px solid #494536;align-items:center}.skill-card{position:relative;width:222px;height:56px;background:url('/Game/play/classic-hell/assets/sklitem_c.png') no-repeat;image-rendering:pixelated}.skill-card canvas{position:absolute;left:12px;top:10px;width:36px;height:36px}.skill-card .skill-name{position:absolute;left:63px;top:7px;width:150px;height:19px;padding:0;border:0;background:none;text-align:left;white-space:nowrap;font:12px/19px SimSun,serif;color:#eee2b6}.skill-card .skill-name:disabled{opacity:1;cursor:default}.skill-level{position:absolute;left:96px;top:32px;font:12px/16px SimSun,serif;color:#eee}.skill-binding{font:12px/1.5 SimSun,serif;color:#b9b197}.skill-binding select{width:78px}.skill-details{grid-column:1/-1;padding-left:12px;font:12px/18px SimSun,serif;color:#b9b197}
+
+.quest-items{border-top:1px solid #655839;margin-top:12px;padding-top:12px}.quest-items p{font-size:12px;line-height:1.6;color:#b9b197}.quest-item{display:flex;align-items:center;gap:8px;margin:6px 0}.quest-item canvas{flex:0 0 36px}
+
+/* Two columns with explicit pages; no vertical scroll or dropdown shortcut control. */
+#win-skills{left:260px;top:64px;width:504px;max-height:none;overflow:hidden}.skill-grid{display:grid;grid-template-columns:repeat(2,222px);gap:12px}.skill-row{grid-template-columns:222px;padding:0;gap:2px;min-height:100px;border:0}.skill-binding{grid-row:3;text-align:right;font-size:11px}.skill-binding button{padding:2px 8px;min-width:72px;height:22px}.skill-details{grid-row:2;padding-left:4px;font-size:11px;white-space:nowrap}.skill-pages{display:flex;justify-content:center;align-items:center;gap:20px;border-top:1px solid #594f3b;margin-top:10px;padding-top:8px}.skill-pages button{padding:4px 12px}
+
+/* Keep the destination label above the luminous gate; the ground remains clickable. */
+.portal-marker{transform:translate(-50%,calc(-100% - 96px));border-color:#81dafa;color:#d5f4ff;background:#0b1827df;box-shadow:0 0 8px #3d9dcc66}.portal-marker:after{color:#a4ebff}.classic-item .exceptional-item{color:#b98cff}
+
+.classic-item .added-stat{color:#94df91}
+/* Compact status badges beside the upper-right minimap; no extra animation timer. */
+#buff-effects{position:absolute;top:12px;right:170px;max-width:440px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:5px;z-index:16}
+.buff-effect{width:46px;height:44px;padding:2px;background:#161b14e8;border:1px solid #9c8b58;color:#f2dda0;text-align:center;box-shadow:inset 0 0 0 1px #343323}
+.buff-effect span{display:block;font-size:13px;line-height:22px}.buff-effect small{display:block;color:#d0ccb0;font:10px/13px SimSun,serif}
+html:not(:lang(zh-CN)) .buff-effect{width:auto;min-width:54px;max-width:110px;padding-inline:6px}
+html:not(:lang(zh-CN)) .buff-effect span{font-size:12px;white-space:nowrap}
+.buff-effect[data-buff="PotionHP"]{border-color:#d26a62;color:#ffada5;background:#351a1be8}
+.buff-effect[data-buff="PotionMP"]{border-color:#699edd;color:#acd4ff;background:#172a42e8}
+.exceptional-properties{border-top:1px solid #665935;margin-top:7px;padding-top:6px;color:#f1d98d}.equipment-tooltip .base-properties{margin-top:4px}
+
+/* Shop slots share the inventory atlas grid and tooltip interactions. */
+.shop-window{left:24px;top:70px;width:358px;max-height:calc(100% - 180px)}
+.shop-window .shop-balance{margin:0 0 8px;color:#e8c968;text-align:right}
+.shop-grid{position:relative;width:328px;min-height:86px;background:url('/Game/play/classic-hell/assets/bagitems_c.png') repeat-y}
+.shop-grid .slot{margin:0}.shop-grid .unaffordable{opacity:.6}
+.shop-help{margin:8px 0 0;color:#bdb899;font-size:12px}
+.shop-price{border-top:1px solid #66563a;margin-top:6px;padding-top:5px;color:#e8c968}
+.quest-list-window{left:50%;top:50px;transform:translateX(-50%);width:560px;max-height:calc(100% - 180px)}
+.quest-list-window .body{max-height:450px;overflow-y:auto}
+.quest-list-heading{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.quest-status{white-space:nowrap;color:#b8b199;font-size:12px}
+.quest-row[data-status="active"] .quest-status,.quest-row[data-status="ready"] .quest-status{color:#91dcaa}
+.quest-row[data-status="available"] .quest-status{color:#ffe29a}
+.quest-row[data-status="done"]{opacity:.65}.quest-row{padding:10px 2px;border-bottom:1px solid #494536}
+.quest-row p{margin:6px 0;line-height:1.65}.quest-row button{padding:4px 8px;margin:3px 6px 3px 0;font-size:12px}
+.quest-rewards,.quest-condition{color:#c7b98f;font-size:12px}
+
+.skill-cooldown{position:absolute;inset:0;display:grid;place-items:center;background:#0009;color:#fff;font:bold 16px sans-serif;pointer-events:none}.skill-cooldown[hidden]{display:none}.npc-quest-intro{margin:10px 0;padding:8px;border:1px solid #6d5835}.npc-quest-intro p{white-space:pre-wrap;line-height:1.6;margin:6px 0}
+.forge-window{left:50%;top:64px;transform:translateX(-50%);width:540px;max-width:calc(100% - 20px)}.forge-tabs{display:flex;gap:4px;margin-bottom:10px}.forge-tabs button.active{color:#ffe799;border-color:#d4b675}.forge-layout{display:grid;grid-template-columns:250px 1fr;gap:14px}.forge-chamber{height:248px;background:radial-gradient(#392d21,#151412);border:double 5px #8c744e;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:10px}.forge-results{overflow:auto;max-height:175px;width:100%;display:flex;flex-wrap:wrap;gap:6px}.forge-preview{display:flex;align-items:center;gap:6px;font-size:12px;color:#eedcb5}.forge-target,.forge-slot{position:relative;min-width:44px;min-height:44px;border:double 3px #8c744e;background:#111b}.forge-quote{white-space:pre-wrap;font-size:12px;min-height:65px;line-height:1.6;padding:8px 0}.forge-picker{max-height:360px;overflow:auto}.forge-inventory{display:grid;grid-template-columns:repeat(4,44px);gap:3px;margin-top:10px}.forge-slot small{position:absolute;right:2px;bottom:0}.forge-recipe{display:block;text-align:left;width:100%;margin-bottom:4px}.forge-launch{position:absolute;right:8px;bottom:76px;z-index:12;width:34px;height:34px;color:#eed294}.boss-timers{max-height:68px;overflow:auto;font-size:12px;line-height:1.6;color:#e2c991;padding:5px}@media(max-width:600px){.forge-layout{grid-template-columns:minmax(180px,1fr) 150px;gap:6px}.forge-inventory{grid-template-columns:repeat(3,44px)}}
+
+#stage:has(#entry:not([hidden])) .forge-launch{display:none}
+
+.forge-launch{padding:0;background:#201b13;border:double 3px #8c744e;font-size:18px}
+
+.forge-recipe{white-space:pre-line;line-height:1.5;font-size:12px}.forge-recipe[hidden]{display:none}.forge-picker>input{width:100%;box-sizing:border-box;margin:6px 0}.forge-tabs{flex-wrap:wrap}.forge-picker>p{font-size:12px;line-height:1.5}
+/* Native guide cards and forging hierarchy; shared by bag, shop and forge previews. */
+.native-item-section{margin-top:9px;padding-top:6px;border-top:1px solid #4c4938}.native-section-title{color:#ddd5bc;margin-bottom:3px}.equipment-tooltip{min-width:210px;max-width:290px;line-height:1.5}.native-stars{color:#ffe06b;letter-spacing:1px}.native-potential{color:#e8da75}.native-talents{color:#63b7ee}.native-material{max-width:290px;line-height:1.6}.native-skill-window{width:370px;max-width:calc(100% - 16px);left:50%;top:40px;transform:translateX(-50%)}.native-skill-window .body{max-height:calc(100dvh - 155px);overflow:auto}.native-skill-heading{display:flex;align-items:center;gap:12px;margin-bottom:12px}.native-skill-heading canvas{border:1px solid #8b7952;background:#141a1b}.skill-rank-tabs,.forge-subtabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}.skill-rank-tabs button,.forge-subtabs button{padding:4px 8px}.skill-rank-tabs .active,.forge-subtabs .active,.forge-slot.active,.forge-recipe.active{border-color:#e2c47b;color:#ffe6a1;background:#393326}.forge-window{width:610px;top:38px}.forge-window .body{max-height:calc(100dvh - 135px);overflow:auto}.forge-layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.forge-chamber{min-height:190px;height:auto;max-height:275px;overflow:auto;padding:10px;background:radial-gradient(ellipse at center,#172427,#111818 65%,#11100e);border:3px ridge #5b5848}.forge-results{display:flex;flex-direction:column;gap:5px}.forge-material-slot{display:flex;gap:6px;align-items:center;min-height:38px}.forge-material-slot canvas{flex-shrink:0;border:1px solid #62706b}.forge-material-slot select{width:calc(100% - 44px);font-size:11px;padding:3px}.forge-preview{font-size:12px}.forge-picker{max-height:420px;overflow:auto;min-width:0}.forge-picker>input,.forge-picker>select{width:100%;margin-bottom:5px;box-sizing:border-box}.forge-recipe{display:flex;align-items:center;gap:8px;white-space:normal;width:100%;text-align:left;padding:6px}.forge-recipe canvas{flex-shrink:0}.forge-recipe small{display:block;color:#aaa28c;font-size:11px;margin-top:3px}.forge-inventory{grid-template-columns:repeat(auto-fill,44px);max-height:none}.forge-quote{font-size:12px;line-height:1.5;white-space:pre-line;min-height:0;margin:8px 0}.forge-outcome{color:#ffe09a;font-size:12px;margin:8px 0}.forge-skills-layout{display:block}.forge-skills-layout .forge-picker{max-height:none;padding:14px}.forge-skill{display:grid;grid-template-columns:130px 1fr 65px;align-items:center;gap:8px;margin-bottom:20px}.forge-skill progress{width:100%;height:12px;accent-color:#b5a572}.forge-target[hidden],.forge-workbench[hidden]{display:none}.potential-history button{white-space:normal;text-align:left;font-size:11px}.forge-tabs button{flex:1}.forge-submit{width:100%}
+@media(max-width:520px){.forge-window{top:12px}.forge-layout{grid-template-columns:1fr}.forge-picker{max-height:200px}.forge-chamber{min-height:100px;max-height:210px}.forge-skill{grid-template-columns:105px 1fr 60px}.native-skill-window{top:12px}.forge-window .body{max-height:calc(100dvh - 85px)}}
+.forge-window .forge-tabs button,.forge-window .forge-subtabs button,.forge-window .forge-recipe,.skill-rank-tabs button{background:linear-gradient(#283336,#141e20);border:1px ridge #687074;border-radius:2px;box-shadow:inset 0 0 0 1px #151310;color:#bebaa4}.forge-window .forge-tabs button.active,.forge-window .forge-subtabs button.active,.forge-window .forge-recipe.active,.skill-rank-tabs button.active{color:#edd799;border-color:#a99051;background:linear-gradient(#3a4038,#24281e)}.native-item-section{margin-top:5px;padding-top:4px}.equipment-tooltip{line-height:1.35}.equipment-tooltip .native-stars:empty{display:none}#tip{max-height:calc(100% - 20px);overflow-y:auto}
+
+.native-skill-window,.forge-window{display:flex;flex-direction:column;overflow:hidden}.native-skill-window .body,.forge-window .body{min-height:0;overflow-x:hidden;overflow-y:auto}.forge-workbench{min-width:0}.forge-material-slot select{min-width:0}.native-item-section{overflow-wrap:anywhere}
+
+/* Native OpUI 841/842: body layers and click regions use the same 289 × 302 coordinates. */
+.character-window{width:658px;top:34px;max-height:calc(100% - 54px);background:#111411;border-color:#70777a}
+.char-layout{gap:14px;align-items:flex-start}.char-equipment{width:405px;flex-shrink:0}
+.paperdoll,.paperdoll.female{display:block;position:relative;width:405px;height:423px;margin:0;padding:0;background:none}
+.paperdoll .doll-art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.char-name{position:absolute;top:12px;left:60px;right:60px;text-align:center;color:#e5e1cd;font-size:15px;pointer-events:none}
+.paperdoll .equipment-slot{position:absolute;padding:0;border:0;background:none;box-shadow:none;overflow:visible}
+.paperdoll .equipment-slot canvas{width:90%;height:90%;object-fit:contain;image-rendering:pixelated}
+.paperdoll .equipment-slot:hover,.paperdoll .equipment-slot:focus-visible{outline:1px solid #cbb77b;background:#d9c58416}
+.paperdoll .equipment-slot:after{display:none}.paperdoll .body-equipment:hover:after,.paperdoll .body-equipment:focus-visible:after{display:block;content:attr(data-label);position:absolute;bottom:0;right:0;font-size:11px;color:#e7d397;background:#111b;padding:1px 3px;pointer-events:none}
+.equipment-empty{font-size:11px;color:#878373;pointer-events:none}.character-help{text-align:center;color:#9f9a84;font-size:11px;margin-top:6px}
+.char-stats{flex:1;min-width:0;font-size:13px;line-height:1.6;color:#c5b781}.char-stats h3{font-size:16px;font-weight:400;text-align:center;letter-spacing:5px;color:#dbb689;background:linear-gradient(#36444c,#151d22);border:2px ridge #637079;margin:0 0 6px;padding:3px}
+.char-stats h3:not(:first-child){margin-top:10px}.char-stat-row{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:25px;border-bottom:1px solid #3c3e38}.char-stat-row strong{font-weight:400;color:#e7e4d7;text-align:right}.char-stats p{white-space:normal;overflow-wrap:anywhere}
+
+.native-item-meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 12px;margin-top:5px;color:#aaa58e;font-size:11px}.native-item-meta>div{min-width:0;overflow-wrap:anywhere}.equipment-tooltip{min-width:230px}
+#tip:has(.equipment-tooltip){max-width:324px;padding:10px 12px}
+
+/* Original dialog ornaments, with a steel frame and a separate scrolling text area. */
+.character-window,.quest-dialog,.quest-list-window{padding:52px 16px 16px;border:2px ridge #737b7b;background:#11140f;box-shadow:0 0 0 2px #15191c,0 0 0 4px #41484a,4px 7px 18px #000b}
+.character-window:before,.quest-dialog:before,.quest-list-window:before{height:58px;background:url('/Game/play/classic-hell/assets/ndlglt_c.png') top left/100px 70px no-repeat,url('/Game/play/classic-hell/assets/ndlgrt_c.png') top right/100px 70px no-repeat,url('/Game/play/classic-hell/assets/ndlgct_c.png') top center/auto 70px repeat-x;filter:grayscale(.9)}
+.character-window h2,.quest-dialog h2,.quest-list-window h2{position:absolute;left:100px;right:100px;top:10px;text-align:center;font-size:17px;letter-spacing:3px;border:0;color:#dedfd8}
+.character-window .close,.quest-dialog .close,.quest-list-window .close{width:26px;height:26px;right:9px;top:18px;font-size:22px;line-height:22px;color:#ffd14f;background:linear-gradient(#6c221c,#290b0a);border:2px ridge #92958a}
+.quest-dialog{width:430px;top:40px;height:490px;max-height:calc(100% - 64px);overflow:hidden;display:flex;flex-direction:column}
+.quest-dialog .body{min-height:0;flex:1;display:flex;flex-direction:column;padding:6px 8px;background:#11140f;border:1px solid #3d4547}
+.quest-dialog-copy{min-height:0;flex:1;overflow:auto;font-size:15px;line-height:1.55;color:#deded6}
+.quest-dialog-copy p{white-space:pre-line;margin:8px 0 12px}.npc-quest-intro{margin-top:10px}.npc-quest-intro b{font-size:16px;font-weight:400;color:#eeead8}
+.quest-dialog-actions{display:flex;flex-direction:column;align-items:flex-start;gap:6px;flex-shrink:0;padding:16px 8px 8px;border-top:1px solid #363b34}
+.quest-dialog-actions button{background:none;border:0;color:#e9e745;text-decoration:underline;text-align:left;padding:4px;line-height:1.4;margin:0;white-space:normal}
+.quest-dialog-actions button:disabled{color:#a4a493;text-decoration:none}.quest-dialog-actions #quest-abandon{color:#b0a582;font-size:12px}
+.quest-list-window{left:300px;top:40px;width:445px;max-height:calc(100% - 64px)}.quest-list-window .body{max-height:395px;overflow:auto}.quest-list-window .quest-row{padding:10px;font-size:13px}.quest-list-window .quest-row p{margin:6px 0}.quest-list-window .quest-row button{background:none;color:#e5d981;border:1px solid #5b6055}
+.equipment-affixes{color:#d9c575}.equipment-affixes .native-talents{color:#63b7ee}
+
+.quest-list-window{left:50%;transform:translateX(-50%);top:40px;width:700px;height:500px;max-height:calc(100% - 64px);overflow:hidden;display:flex;flex-direction:column}
+.quest-list-window .body{flex:1;min-height:0;max-height:none;overflow:hidden}.quest-master-detail{display:grid;grid-template-columns:205px minmax(0,1fr);height:100%;min-height:0;border:1px solid #596168;background:#11140f}
+.quest-master{overflow:auto;border-right:3px ridge #58636b;padding:8px 6px}.quest-master h3{font-size:13px;font-weight:400;color:#c7b785;padding:4px 0;margin:0 0 4px;border-bottom:1px solid #3f453b}.quest-master h3:not(:first-child){margin-top:16px}
+.quest-master button{display:block;width:100%;background:none;border:0;padding:5px 3px;text-align:left;line-height:1.4;font-size:13px;color:#b8b9aa;white-space:normal}.quest-master button.selected{background:#48523b66;color:#f4efd5;outline:1px solid #737762}.quest-master button small{display:block;color:#e9d075;text-align:right}.main-quest{color:#e1db24}.side-quest{color:#45cb3b}.quest-master [data-status=done]{opacity:.7}.quest-empty{font-size:12px;color:#777e71}.quest-future{margin-top:18px;font-size:12px;color:#b7af92}.quest-future summary{cursor:pointer}.quest-inventory-link{margin-top:15px;color:#a6bbc9!important}
+.quest-detail-content{min-width:0;overflow:auto;padding:12px 16px;color:#deded1;font-size:14px;line-height:1.5}.quest-detail-content h3{font-size:16px;margin:0 0 15px;color:#dfd8ac}.quest-detail-content h3 small{font-size:11px;font-weight:400;color:#aba991}.quest-detail-content h4{font-size:15px;font-weight:400;color:#d35842;margin:18px 0 3px}.quest-detail-content p{margin:3px 0 12px}.quest-detail-content .quest-condition{font-size:12px;color:#a4a58f}.quest-detail-content button{display:block;background:none;border:0;padding:5px 0;color:#e2dc52;text-decoration:underline;text-align:left;white-space:normal}.quest-detail-content .quest-abandon{font-size:12px;color:#a59d85;margin-top:12px}
+
+.quest-master,.quest-detail-content,.quest-dialog-copy{scrollbar-width:thin;scrollbar-color:#68716a #171e19}.quest-detail-content{font-size:16px}.quest-master button{font-size:14px}.quest-dialog-copy{font-size:16px}.quest-dialog .npc-quest-intro{border:0;padding:0;background:none}.quest-dialog-actions button{font-size:15px}
+
+/* Cover the unused miniature HP/MP/Exp ornaments with the same native HUD texture. */
+#hud::before{content:"";position:absolute;left:110px;top:56px;width:119px;height:68px;background:url("/Game/play/classic-hell/assets/ui-130.png") -280px -56px;pointer-events:none}
+
+/* Native dark metal buttons; icon and text-link overrides keep their own skins. */
+button:hover{filter:brightness(1.12)}
+.buff-effect img{width:30px;height:30px;object-fit:contain;image-rendering:pixelated}
+.buff-effect[data-buff="WorldFirework"]{padding:2px 4px;background:#161913;border-color:#787050}
+.quest-coordinate{color:#d2d8b5;font-size:13px;line-height:1.6}
+
+.cloud-window .cloud-login label{display:block;margin:12px 0}.cloud-window input{display:block;width:100%;box-sizing:border-box;margin-top:5px}.cloud-confirm p{white-space:pre-line;line-height:1.7}.cloud-confirm:empty{display:none}.cloud-confirm{border:1px solid #6b6551;padding:10px}.cloud-window [role="status"]{color:#e4ce8a}.cloud-window button{margin:4px 3px}.entry-actions{flex-wrap:wrap}
+.map-quest-targets{display:flex;flex-wrap:wrap;gap:4px;max-height:90px;overflow:auto}.map-quest-target{color:#f7e087;border-color:#8f804c;font-size:12px;padding:4px 8px}
+
+
+
+/* Text controls use the original system skin. Icon controls inherit no hover image. */
+.system-window .body>button{display:block;width:max-content;max-width:100%;min-width:110px;margin:10px auto}
+.map-exits .map-exit{display:inline-block;width:auto;max-width:100%;margin:3px 4px 3px 0}
+.quest-detail-content>button{display:block;width:max-content;max-width:100%;margin:6px 0}
+button{background-size:100% 100%}
+.character-window{width:555px;top:44px;padding:40px 12px 12px;max-height:calc(100% - 86px)}
+.character-window:before{height:44px;background-size:76px 52px,76px 52px,auto 52px}
+.character-window h2{top:7px;font-size:15px}
+.character-window .close{top:10px;width:22px;height:22px;font-size:19px;line-height:18px}
+.character-window .char-layout{gap:10px}.character-window .char-equipment{width:335px}
+.character-window .paperdoll{width:335px;height:350px}
+.character-window .char-name{font-size:13px;top:9px}
+.character-window .char-stats{font-size:12px;line-height:1.35}
+.character-window .char-stats h3{background:none;border:0;border-bottom:1px solid #686650;font-size:13px;letter-spacing:2px;padding:0 0 3px;margin:0 0 3px;text-align:left}
+.character-window .char-stats h3:not(:first-child){margin-top:7px}
+.character-window .char-stat-row{min-height:20px;gap:3px}
+.character-window .character-help{font-size:10px;margin-top:4px}
+.character-window .equipment-empty{font-size:9px}
+:root #assist-launch{position:absolute;right:12px;bottom:180px;width:56px;height:34px;background:#201b13;color:#e8d49a;border:double 3px #8c744e;z-index:5;padding:0;font-size:14px}
+#stage:has(#entry:not([hidden])) #assist-launch{display:none}
+.assist-window{left:50%;top:100px;transform:translateX(-50%);width:350px;max-width:calc(100% - 20px)}
+.assist-row{display:flex;align-items:center;gap:8px;margin:14px 0 8px;color:#ffe799}
+.assist-threshold{display:flex;align-items:center;gap:8px;margin-left:26px}
+.assist-threshold input{width:62px;padding:5px;color:#fff;background:#151412;border:1px solid #8c744e}
+.assist-note{font-size:12px;line-height:1.6;color:#c9bd9f}.assist-row input{width:16px;height:16px}.assist-window p{line-height:1.6}
+
+/* Native OpUI.Lib frame177: upper five stone slots and lower equipment slot. */
+.forge-hint{font-size:12px;line-height:1.5;color:#c4b896;margin:0 0 6px}.forge-chamber.forge-native{position:relative;display:block;width:244px;height:312px;min-height:312px;max-height:none;padding:0;border:0;overflow:visible;background:url('/Game/play/classic-hell/assets/forge-chamber.png') center/244px 312px no-repeat;margin:auto}.forge-native .forge-stone,.forge-native .forge-target{position:absolute;box-sizing:border-box;min-width:0;min-height:0;width:33px;height:31px;padding:0;border:1px solid transparent;background:transparent}.forge-stone small{position:absolute;right:0;bottom:0;font-size:10px;color:white;text-shadow:1px 1px #000}.forge-native [data-forge-material="0"]{left:104px;top:59px}.forge-native [data-forge-material="1"]{left:46px;top:96px}.forge-native [data-forge-material="2"]{left:165px;top:96px}.forge-native [data-forge-material="3"]{left:73px;top:151px}.forge-native [data-forge-material="4"]{left:139px;top:151px}.forge-native .forge-target{left:105px;top:208px}.forge-stone.selected{outline:1px solid #bba260}.forge-native-cost{position:absolute;left:35px;right:15px;top:272px;font-size:12px;color:#eee;text-shadow:1px 1px #000}.forge-native canvas,.forge-two-slot canvas{width:32px;height:32px}.forge-explanation{margin-top:6px;max-height:100px}.forge-two-slot{position:relative;display:block;height:225px;max-height:none}.forge-two-slot .forge-stone,.forge-two-slot .forge-target{position:absolute;top:42px;width:46px;height:46px;padding:3px;border:3px ridge #8c744e;background:#111}.forge-two-slot .forge-stone{left:30px}.forge-two-slot .forge-target{right:30px}.forge-two-slot .forge-arrow{position:absolute;top:48px;left:calc(50% - 16px);font-size:30px;color:#bfa455}.forge-two-slot .forge-native-cost{top:180px}.forge-native .forge-target:empty:after,.forge-two-slot .forge-target:empty:after{content:attr(data-empty-label);color:#9c947e;font-size:10px}.forge-native .forge-target:empty:after{opacity:.7}
+
+.forge-submit{position:sticky;bottom:0;z-index:2}.forge-workbench .forge-outcome:empty{display:none}.forge-workbench .forge-results:empty{display:none}
+.forge-inventory .forge-slot{width:44px;height:44px;min-width:0;min-height:0;padding:1px;box-sizing:border-box}.forge-inventory canvas{width:36px;height:36px}.potential-history{min-width:0;overflow-wrap:anywhere}.potential-history button{max-width:100%}
+
+/* Forge uses the real bag; leave both windows reachable at the logical viewport. */
+.forge-window{left:calc(50% - 480px);transform:none}
+.forge-direct{width:380px;left:calc(50% - 200px)}
+.forge-direct .forge-layout{display:block}
+.forge-direct .forge-picker:empty{display:none}
+.forge-direct .forge-results{max-height:100px;overflow:auto;margin-top:6px}
+.forge-direct .forge-results:empty{display:none}
+.forge-direct .forge-results .forge-slot{flex-shrink:0}
+.forge-target,.forge-stone{touch-action:none}
+
+/* Shared bag-style storage stays beside the inventory. */
+.storage-window{left:35px;top:80px;width:356px;max-height:calc(100% - 100px)}
+.storage-grid{margin:14px 0}
+
+.cube-window{width:280px;left:calc(50% - 300px)}.cube-subtitle{text-align:center;color:#dfd3b4;margin:0 0 18px}.cube-slots{display:grid;grid-template-columns:repeat(4,41px);grid-template-rows:repeat(2,41px);gap:1px;width:max-content;margin:0 auto 18px;padding:2px;border:1px solid #696449;background:#11110f}.cube-slot{position:relative;width:41px;height:41px;min-width:0;padding:1px;border:3px ridge #4c4d3c;background:radial-gradient(#25291e,#10120e);touch-action:none}.cube-slot canvas{width:34px;height:34px}.cube-slot small{position:absolute;right:1px;bottom:0;color:#fff;text-shadow:1px 1px #000;font-size:11px}.cube-window .forge-submit{display:block;width:90px;margin:12px auto 0}.cube-window .forge-hint{color:#b4ad95}.cube-window .forge-quote{min-height:36px}
+
+html:not(:lang(zh-CN)) .buff-effect[data-buff="WorldFirework"] img{display:block;width:24px;height:24px;margin:0 auto}
+
+/* Five-star equipment: quality-coloured edge sheen; item art and pointer targets stay clear. */
+.equipment-flow{isolation:isolate}
+.equipment-flow-edge{position:absolute;inset:0;padding:2px;border-radius:inherit;pointer-events:none;z-index:2;background:linear-gradient(115deg,var(--equipment-flow-color) 5%,transparent 28%,var(--equipment-flow-color) 45%,#fff5db 50%,var(--equipment-flow-color) 55%,transparent 72%,var(--equipment-flow-color) 95%);background-size:300% 300%;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:equipment-colour-flow 3.6s linear infinite}
+.equipment-flow-title{background:linear-gradient(110deg,var(--equipment-flow-color) 25%,#fff7df 45%,var(--equipment-flow-color) 65%);background-size:250% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:equipment-colour-flow 4.5s linear infinite}
+@keyframes equipment-colour-flow{from{background-position:150% 50%}to{background-position:-150% 50%}}
+@media(prefers-reduced-motion:reduce){.equipment-flow-edge,.equipment-flow-title{animation:none}.equipment-flow-title{background:none;-webkit-text-fill-color:currentColor}}
+
+/* Shared corner utilities keep the established native button artwork. */
+#utility-actions{position:absolute;right:12px;bottom:28px;display:flex;gap:5px;z-index:12}
+:root #utility-actions>button{position:static;inset:auto;width:auto;min-width:66px;height:34px;padding:4px 12px;border:1px solid #756649;border-radius:0;background:#171817 url('/Game/play/classic-hell/assets/common-ui/button-normal.webp') center/100% 100%;color:#e8d49a;font:14px SimSun,"Songti SC",serif;transform:none}
+#stage:has(#entry:not([hidden])) #utility-actions{display:none}
+
+#utility-actions #hud-leaderboard{order:0}#utility-actions .forge-launch{order:1}#utility-actions #assist-launch{order:2}
+
+/* Travel posts group their options without changing other NPC dialogues. */
+.npc-window.station-dialog{width:600px;max-width:calc(100vw - 60px)}
+.station-copy{margin-bottom:8px;line-height:1.6}
+.station-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 8px}
+.npc-window .station-choices a[data-key]{display:flex;align-items:center;justify-content:center;min-width:0;min-height:36px;padding:5px 8px;border:1px solid #776847;border-radius:3px;background:#191811;text-align:center;text-decoration:none;line-height:1.45;overflow-wrap:anywhere;box-sizing:border-box}
+.npc-window .station-choices a[data-key]:hover{background:#2b261a;border-color:#b39a62}
+@media(max-width:700px){.station-choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.cube-quest-picker{margin:8px 0}.cube-quest-picker>p{font-size:12px;color:#e5d09e;margin:5px 0}.cube-quest-materials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;max-height:174px;overflow:auto}.cube-quest-material{display:flex;align-items:center;gap:4px;min-height:44px;padding:3px;text-align:left;white-space:normal;font-size:11px}.cube-quest-material canvas{flex-shrink:0}.cube-quest-material span{min-width:0}.cube-quest-material small{display:block;color:#d8cdb1}.cube-quest-material.selected{border-color:#e2c47b;color:#ffe6a1;background:#393326}
+
+/* Share exports reuse the native equipment details without a scene backdrop. */
+.equipment-share-dialog{position:fixed;inset:0;z-index:100000;background:#000b;display:grid;place-items:center;padding:16px;font:15px/1.45 "Songti SC",SimSun,serif;color:#eee}.equipment-share-dialog[hidden]{display:none}.equipment-share-panel{width:max-content;max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;background:#11180f;border:1px solid #8c8158;box-shadow:0 12px 60px #000b;padding:12px 16px}.equipment-share-toolbar{display:flex;justify-content:space-between;gap:24px;align-items:center;margin-bottom:10px;flex:none}.equipment-share-toolbar h2{font-size:19px;color:#e4d6ad;margin:0}.equipment-share-toolbar button{font:25px/1 Arial;padding:0 8px;background:none;border:0;color:#d5c79e}.equipment-share-preview{overflow:auto;min-height:100px;max-height:calc(100dvh - 230px);max-width:calc(100vw - 68px);padding:3px;flex:1}.equipment-share-output{display:block;max-width:none;height:auto}.equipment-share-status{margin:10px 0 7px;max-width:700px;overflow-wrap:anywhere;color:#e3d8b8;font-size:14px}.equipment-share-actions{display:flex;flex-wrap:wrap;gap:8px;flex:none}.equipment-share-actions button,.equipment-share-actions a,.equipment-share-resume,.character-share-button{font:15px/1.4 "Songti SC",SimSun,serif;background:linear-gradient(#30382b,#172014);border:1px solid #8c8158;color:#efe4bf;padding:6px 12px;cursor:pointer;text-decoration:none}.equipment-share-actions :disabled{opacity:.45;cursor:wait}.equipment-share-note{font-size:12px;color:#a8a58e;margin:8px 0 0;max-width:700px}.equipment-share-resume{position:fixed;top:12px;right:12px;z-index:100001}.equipment-share-resume[hidden],.equipment-share-actions [hidden]{display:none}.character-share-button{display:block;margin:8px auto}
+.equipment-share-card{width:500px;flex:none;text-size-adjust:none;-webkit-text-size-adjust:none;padding:18px 22px 14px;background:#081008;border:1px solid #8c8158;box-sizing:border-box;color:#eee;font:21px/1.45 "Songti SC",SimSun,serif;overflow-wrap:anywhere}.equipment-share-identity{white-space:nowrap;word-break:normal;overflow-wrap:normal;border-bottom:1px solid #4c4938;padding-bottom:13px;margin-bottom:13px;color:#bbb493}.equipment-share-brand{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:10px}.equipment-share-game{flex:0 0 auto;font-size:32px;font-weight:900;line-height:1.2;letter-spacing:4px;background:linear-gradient(#fff2c7 8%,#c8ad73 53%,#927b45 57%,#ead39c 94%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 1px 1px #c1a77322}.equipment-share-edition{font-size:14px;letter-spacing:2px;color:#c9b987;border:1px solid #6b6042;padding:3px 8px;flex:none}.equipment-share-player{display:flex;align-items:center;gap:12px;padding:7px 12px;border-left:2px solid var(--share-quality,#b6a375);background:linear-gradient(90deg,#c9bc8a12,transparent)}.equipment-share-player small{font-size:14px;color:#aaa58e;letter-spacing:2px;flex:none}.equipment-share-player strong{flex:0 0 auto;font-size:23px;font-weight:600;color:#f1e5c2;letter-spacing:2px;line-height:1.2}.equipment-share-heading{display:flex;align-items:center;gap:14px;margin-bottom:8px;min-height:61px}.equipment-share-icon{width:58px;height:58px;flex:none;border:1px solid var(--share-quality,#8c8158);background:#11170d;image-rendering:pixelated}.equipment-share-heading b{font-size:25px;line-height:1.3;display:block;margin:0 0 5px}.equipment-share-card .classic-item{font:21px/1.45 "Songti SC",SimSun,serif}.equipment-share-card .equipment-tooltip{min-width:0;max-width:none;line-height:1.45}.equipment-share-card .native-stars{font-size:23px;letter-spacing:2px;color:#ffe06b}.equipment-share-card .native-item-meta{font-size:17px;gap:3px 12px;margin-top:8px}.equipment-share-card .native-item-section{margin-top:11px;padding-top:9px;border-top:1px solid #4c4938}.equipment-share-card .native-section-title{font-size:20px;margin-bottom:4px}.equipment-share-card .native-set-bonus{font-size:18px;line-height:1.6}.equipment-share-footer{display:flex;justify-content:space-between;margin-top:16px;padding-top:9px;border-top:1px solid #4c4938;font-size:14px;color:#8e8e76}
+
+
+/* Equipment operations stay in the title bar; slot corners show state only. */
+.has-equipment-management>h2{padding-right:130px;letter-spacing:2px;min-height:18px}
+.equipment-management-actions{position:absolute;right:34px;top:4px;display:flex;gap:4px;z-index:4}
+.equipment-management-actions button{font:11px/18px system-ui;padding:1px 6px;min-width:32px;height:23px;background:#161813b8;border:1px solid #756749;color:#cabc94}
+.equipment-management-actions button[aria-pressed=true]{color:#ffe59b;border-color:#c2a358;background:#403820}
+.equipment-management-hint{font:12px/1.5 system-ui;color:#dbc88f;margin:0 0 6px;letter-spacing:0}
+.equipment-lock-badge{position:absolute;right:0;bottom:0;top:auto;width:9px;height:11px;color:#b2a47f;background:#13160e55;opacity:.72;pointer-events:none;z-index:4;border-radius:1px}
+.equipment-lock-badge svg{width:100%;height:100%;display:block}
+.equipment-selecting .management-eligible{outline:1px solid #bfa968;cursor:pointer}
+.equipment-selecting .management-ineligible{opacity:.3}
+.equipment-bulk-sell{float:left;margin-left:5px;font:12px/20px system-ui;padding:1px 8px}
+.equipment-sale-window{left:50%;top:10%;transform:translateX(-50%);width:390px;max-height:70vh;z-index:400;font:13px/1.5 system-ui}
+.equipment-sale-window h2{letter-spacing:1px}
+.equipment-sale-window fieldset{display:flex;flex-wrap:wrap;gap:5px 12px;border:1px solid #5c533e;padding:7px;margin:0 0 8px}
+.equipment-sale-window label{display:inline-flex;align-items:center;gap:4px}
+.equipment-sale-special{color:#d4af75}
+.equipment-sale-list{max-height:230px;overflow:auto;border-block:1px solid #504a38;margin:8px 0;padding:6px 2px}
+.equipment-sale-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+.equipment-sale-row>span:first-child{overflow-wrap:anywhere}
+.equipment-sale-row>span:last-child{flex-shrink:0;color:#ddc675}
+.equipment-sale-note{font-size:11px;color:#a99f87;margin:6px 0}
+.equipment-sale-actions{display:flex;justify-content:flex-end;gap:8px}
+.equipment-sale-actions button{padding:4px 12px}
+
+/* Sharing uses the bundled face, including nested native equipment details. */
+.equipment-share-card,.equipment-share-card *{font-family:"BackMir Share Sans",sans-serif!important}
+
+.storage-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px}.storage-toolbar .money{margin-left:auto}.storage-toolbar button{white-space:nowrap}
+
+.shop-quantity{display:flex;align-items:center;gap:6px;margin:4px 0 8px;font-size:12px}.shop-quantity input{width:62px;min-height:28px;background:#161c15;color:#eee1bd;border:1px solid #6b6247;padding:2px 4px}
+
+.map-view-controls{display:flex;align-items:center;gap:6px;margin:4px 0 6px}.map-view-controls button{min-width:30px;padding:4px 8px}.map-view-controls [data-map-zoom]{margin-left:auto}.map-viewport{height:340px;overflow:hidden;touch-action:none}.map-viewport canvas{display:block;width:100%!important;height:100%!important}.map-locations{max-height:140px;overflow:auto}
+
+.bag-tabs{display:flex;gap:4px;margin:4px 0 7px;width:100%;box-sizing:border-box;flex:none}
+.bag-tabs button{flex:1;min-width:0;padding:5px 3px;font-size:12px;line-height:1.3;white-space:nowrap;cursor:pointer}
+.bag-tabs button[aria-selected="true"]{border-color:#b9a16b;color:#f3df9e;background:#51412788}
+#win-storage-unlock .window-body{padding:10px;line-height:1.6}#win-storage-unlock button{padding:6px 12px;margin:6px 6px 0 0}
+
+#entry.native-entry{position:absolute;inset:0;width:100%;height:100%;max-height:none;transform:none;border:0;padding:0;box-shadow:none;background:#151714 url('/Game/play/classic-hell/assets/selchr_c.jpg') center/100% 100% no-repeat;overflow:hidden;text-align:center;z-index:20}
+#entry.native-entry:before{display:none}.native-entry .entry-logo{position:absolute;top:12px;left:0;right:0;margin:0;text-shadow:2px 3px #000;font-size:28px;letter-spacing:12px}
+.native-entry #entry-title{position:absolute;top:45px;width:100%;font-size:15px;color:#e6d8ad;text-shadow:1px 2px #000}
+.native-entry #roles{position:absolute;right:7%;top:16%;width:26%;z-index:2}.native-entry #roles button{background-color:#090908b0;min-height:38px;margin:5px 0}.native-entry #roles button[aria-pressed=true]{color:#ffe789;border-color:#eadb84;box-shadow:inset 0 0 12px #ba872c}
+#selected-character-art{position:absolute;height:91%;width:auto;left:24%;top:2%;pointer-events:none}.entry-actions{position:absolute;bottom:42px;left:0;right:0;display:flex;justify-content:center;gap:48px}.entry-actions button{min-width:140px;font-size:20px;background-color:#342324}
+.native-entry #status{position:absolute;bottom:12px;left:0;right:0;color:#c7b995;text-shadow:1px 2px black}
+#entry .create-character{position:absolute;top:47%;left:50%;transform:translate(-50%,-50%) scale(1.45);width:584px;height:416px;margin:0;padding:0;z-index:3;background:url('/Game/play/classic-hell/assets/entry/create-panel-textless.png') center/100% 100%;text-align:left}
+#create-character-art{position:absolute;left:0;top:0;width:284px;height:416px;pointer-events:none}
+#entry #name{position:absolute;left:355px;top:79px;width:135px;height:25px;background:#100301;border:0;color:#eee;font-size:13px;padding:2px}
+#entry #jobs{position:absolute;left:327px;top:151px;gap:10px;margin:0;padding:0;display:flex}
+#entry #jobs button,#sex-buttons button{width:40px;height:38px;min-width:0;border:0;padding:0;background-size:100% 100%}
+#sex-buttons{position:absolute;left:378px;top:233px;display:flex;gap:11px}.create-actions{position:absolute;left:336px;top:290px;display:flex;gap:25px}.create-actions button{width:75px;height:28px;padding:2px;font-size:14px}
+#entry #job-description{position:absolute;left:294px;top:326px;width:270px;height:65px;margin:0;font:12px/1.4 SimSun,'Songti SC',serif;color:#ded9c5;text-shadow:1px 1px black}
+#entry #entry-error{position:absolute;left:294px;top:392px;width:270px;margin:0;color:#ff8b78;font-size:11px}
+@media(min-width:1000px){#entry .create-character{transform:translate(-50%,-50%) scale(1.45)}}
+#identification-hint{display:flex;align-items:center;gap:8px;margin:2px 0 8px;color:#ffcf7e;font-size:12px;line-height:1.4}#identification-hint button{white-space:nowrap;padding:3px 9px}.identifying-equipment #win-bag .slot{cursor:crosshair}
+
+#stage:has(#entry:not([hidden])) #keys{display:none}
+/* All languages use text-free artwork and real localized labels. */
+.native-entry .language-picker{position:absolute;right:16px;top:12px;display:flex;align-items:center;gap:6px;font-size:12px;z-index:4}
+.language-picker select{width:auto;min-width:90px;padding:3px}
+.localized-entry-heading{display:block;position:absolute;left:292px;right:8px;top:15px;margin:0;text-align:center;font:19px/1.3 Georgia,serif}
+.localized-entry-label{display:block;position:absolute;left:300px;right:12px;text-align:center;font:13px/1.3 Arial,sans-serif;color:#d7c695}
+.entry-name-label{top:59px}.entry-class-label{top:123px}.entry-gender-label{top:208px}
+#entry #jobs button,#entry #sex-buttons button{position:relative;font-size:0}
+#entry #jobs button::after,#entry #sex-buttons button::after{content:attr(aria-label);position:absolute;top:40px;left:-9px;width:58px;text-align:center;font:10px/13px Arial,sans-serif;color:#ded9c5}
+#entry #jobs button[aria-pressed="true"]::after,#entry #sex-buttons button[aria-pressed="true"]::after{color:#ffe098}
+#entry #job-description{font:11px/1.4 Arial,sans-serif;overflow:auto;height:65px}
+html:not([lang="zh-CN"]) .native-entry .entry-logo{letter-spacing:3px}
+html:not([lang="zh-CN"]) .entry-actions{gap:16px}
+html:not([lang="zh-CN"]) .entry-actions button{font-size:16px;min-width:150px}
+html:not([lang="zh-CN"]) .forge-launch{font-size:12px;min-width:44px;padding:3px}
+html:not([lang="zh-CN"]) #keys{font-family:Arial,sans-serif;font-size:10px;line-height:1.25;white-space:normal}
+html:not([lang="zh-CN"]) .locked-bag-slot{font-size:8px!important}
+/* Code-drawn card: no baked-in caption. */
+.skill-card{background:linear-gradient(#27281f,#171912);border:1px solid #665a3d;box-shadow:inset 0 0 0 2px #171711}
+.skill-level{left:63px;top:32px;width:150px;height:18px;background:#25231a;font:12px/18px Arial,sans-serif}
+html:not([lang="zh-CN"]) .skill-card .skill-name{top:4px;height:27px;white-space:normal;font:11px/13px Arial,sans-serif;overflow-wrap:anywhere}
+#novice-guide{max-height:calc(100% - 230px);overflow:auto;position:absolute;top:74px;left:16px;z-index:15;width:265px;box-sizing:border-box;padding:10px 12px;color:#f3e4bb;background:#121810e8;border:1px solid #9c814c;box-shadow:0 5px 18px #0008;font:13px/1.5 system-ui}#novice-guide summary{cursor:pointer;color:#f2d482;font-weight:600}#novice-guide p{margin:8px 0;white-space:pre-line}#novice-guide button{width:100%;padding:7px;background:#554323;color:#fff1cd;border:1px solid #ac915d;cursor:pointer}#novice-guide small{display:block;font-size:11px;color:#b5baa5}#novice-guide .novice-tip{color:#98dabb;font-size:12px}#enter-role{border-color:#dcc277!important;color:#fff1c8!important;font-weight:bold}#enter-role:disabled{opacity:.65}
+
+/* Post-novice tracking stays collapsed until the player opens it. */
+#quest-tracker{position:absolute;top:74px;left:16px;z-index:15;width:285px;max-width:calc(100% - 32px);max-height:calc(100% - 230px);overflow:auto;box-sizing:border-box;padding:9px 12px;border:1px solid #877449;background:#121810ed;color:#eee1bd;font:13px/1.5 system-ui}
+#quest-tracker summary{cursor:pointer;color:#ecd08c;overflow-wrap:anywhere}#quest-tracker summary small{color:#aad2a8;font-size:11px}#quest-tracker p{margin:8px 0;white-space:pre-line}#quest-tracker .quest-track-progress{color:#a9dbb8}#quest-tracker button{display:block;width:100%;margin:6px 0;padding:6px;text-align:left;white-space:normal;border:1px solid #796944;background:#302c21;color:#f2dfb3;cursor:pointer}#quest-tracker a,.quest-query-links a{display:block;margin:7px 0;color:#b6d9dc;text-decoration:underline}
+.quest-list-window .body{display:flex;flex-direction:column;gap:8px}.quest-master-detail{flex:1;min-height:0}.quest-search{box-sizing:border-box;width:100%;flex-shrink:0;padding:8px;border:1px solid #596168;background:#17201a;color:#eee1bd;font:14px system-ui}.quest-master button[hidden]{display:none}.quest-search-empty{margin:0;color:#d4bd8e;font-size:13px}.quest-track-choice{color:#a9dbb8!important}.quest-query-links{margin-top:16px;border-top:1px solid #596168;padding-top:5px;font-size:13px}
+
+.native-entry #entry-delete-role{position:absolute;right:7%;top:62%;z-index:2;min-height:40px;padding:6px 12px;font:14px system-ui;color:#d4ad96;background:#191610cc;border:1px solid #745e4b}
+#win-delete-role input{display:block;box-sizing:border-box;width:100%;min-height:44px;font:16px system-ui;margin:8px 0}
+#win-delete-role button{min-height:44px;margin:4px 8px 4px 0}
+
+#challenge-countdown {
+ position:absolute; z-index:14; top:max(8px, env(safe-area-inset-top), var(--m2-st, 0px));
+ left:50%; transform:translateX(-50%); pointer-events:none; padding:4px 10px;
+ border:1px solid #716044; border-radius:4px; background:#17160fe8;
+ color:#f3d48b; font:600 12px/1.35 system-ui; white-space:nowrap;
+}
+
+/* Keep the desktop timer in its own row while the target health bar is visible. */
+html:not([data-controls="mobile"]) #stage:has(#target:not(:empty)) #challenge-countdown {
+ top:38px;
+}
+
+#buff-effects .buff-effect small {
+ color:#fff2bc;
+ font-weight:700;
+ text-shadow:0 1px 2px #000,0 0 3px #000,0 0 4px #000;
+}
+
+html:not([data-controls=mobile]) #win-display{width:440px;max-width:calc(100% - 24px);left:50%;top:50%;transform:translate(-50%,-50%);max-height:calc(100% - 28px);text-align:left;font:14px/1.6 system-ui}
+#win-display label{display:block;margin:8px 0;color:#e8d6ac}#desktop-resolution{display:block;width:100%;min-height:40px}#display-current{color:#a9d3ba}#display-save-status{font-size:12px;color:#bab9a5}#win-display .body>button{display:block;width:100%;margin:10px 0;min-height:38px}
+
+#exit-game-fullscreen{position:fixed;top:10px;right:175px;z-index:1000;min-height:36px;padding:8px 14px;background:#171b16eF;color:#ffe4a4;border:1px solid #ab9564;font:14px system-ui;box-shadow:0 2px 8px #0008}#display-fullscreen-hint{font-size:12px;color:#d4c9ae}

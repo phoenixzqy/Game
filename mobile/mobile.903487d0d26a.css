@@ -1,0 +1,162 @@
+/* Loaded exclusively by the mobile entry. Every selector has a mobile scope. */
+html[data-controls=mobile] body{font:14px/1.45 system-ui,sans-serif;overscroll-behavior:none;width:var(--mobile-width,100vw);height:var(--mobile-height,100dvh)}
+html[data-controls=mobile] #stage{position:absolute;left:0;top:0;width:var(--mobile-width,100vw);height:var(--mobile-height,100dvh);transform:none;margin:0;overflow:hidden}
+html[data-controls=mobile] #world{width:100%;height:100%;touch-action:none}
+html[data-controls=mobile] #hud,html[data-controls=mobile] #keys,html[data-controls=mobile] #tip,html[data-controls=mobile] .forge-launch,html[data-controls=mobile] #assist-launch{display:none!important}
+html[data-controls=mobile] #combat-text{transform:scale(.85);transform-origin:0 0}
+html[data-controls=mobile] #location{top:48px;right:max(10px,env(safe-area-inset-right));font:12px system-ui}
+html[data-controls=mobile] #target{top:75px;max-width:45%;font:14px system-ui}
+html[data-controls=mobile] #notice{z-index:150;max-width:75%;width:max-content;top:30%;background:#111d;padding:6px 12px;border-radius:4px;font:14px system-ui;text-align:center}
+html[data-controls=mobile] #minimap,html[data-controls=mobile] .minimap,html[data-controls=mobile] #map-navigation{display:none!important}
+html[data-controls=mobile] #novice-guide,html[data-controls=mobile] #quest-tracker{left:max(12px,env(safe-area-inset-left));right:auto;top:52px;bottom:auto;width:220px;max-height:95px;overflow:auto;font:12px/1.4 system-ui;z-index:11;padding:4px 8px}
+html[data-controls=mobile] #novice-guide:not([open]){max-height:44px}
+html[data-controls=mobile] #novice-guide summary{min-height:32px;font-size:12px}
+html[data-controls=mobile] #novice-guide .novice-tip,html[data-controls=mobile] #novice-guide>small{display:none}
+html[data-controls=mobile] #novice-guide button,html[data-controls=mobile] #quest-tracker button{min-height:44px;white-space:normal;font-size:12px}
+html[data-controls=mobile] .buff-hud,html[data-controls=mobile] #buff-hud,html[data-controls=mobile] .boss-timers{right:8px;top:90px;font-size:11px;max-height:45px;max-width:150px;overflow:auto}
+#mobile-root{position:absolute;inset:0;width:var(--mobile-width,100vw);height:var(--mobile-height,100dvh);z-index:70;pointer-events:none;color:#eee;font:14px/1.4 system-ui,sans-serif}
+#mobile-root [hidden]{display:none!important}
+#mobile-root button,#mobile-root input,#mobile-root select{font:inherit;min-width:44px;min-height:44px;touch-action:manipulation;padding:6px 10px}
+#mobile-root button{background:#201d16e8;border:1px solid #ac9162;border-radius:6px;color:#f6e8c5}
+#mobile-root button:active{background:#6b522e}
+#mobile-root .mobile-top{position:absolute;left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));top:max(4px,env(safe-area-inset-top));display:flex;gap:6px;align-items:center;pointer-events:none}
+#mobile-root .mobile-top button{pointer-events:auto}
+#mobile-root .mobile-vitals{flex:1;min-width:0;font-size:12px;background:#141813db;padding:5px 8px;border-radius:4px;text-shadow:1px 1px #000;max-width:420px}
+#mobile-root .mobile-stick{position:absolute;bottom:max(22px,env(safe-area-inset-bottom));left:max(24px,env(safe-area-inset-left));width:120px;height:120px;border:2px solid #c3ad7980;background:#131b1b65;border-radius:50%;touch-action:none;pointer-events:auto;display:grid;place-items:center;user-select:none}
+#mobile-root .mobile-stick i{width:52px;height:52px;border:2px solid #baa57b;border-radius:50%;background:#786a48b0;pointer-events:none}
+/* Compact right-hand cluster. Four visible skills per page, all eight bindings retained. */
+#mobile-root .mobile-actions{position:absolute;right:max(10px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:204px;height:164px;pointer-events:none}
+#mobile-root .mobile-actions button{position:absolute;pointer-events:auto;min-width:36px;min-height:36px;width:40px;height:40px;padding:2px;font-size:10px;border-radius:50%;background:#251d14d9}
+#mobile-root .mobile-actions [data-action=target]{right:0;top:52px}
+#mobile-root .mobile-actions [data-action=pickup]{left:94px;bottom:2px}
+#mobile-root .mobile-actions .mobile-attack{right:0;bottom:0;width:60px;height:60px;background:#6e3424dc;font-size:15px}
+#mobile-root .mobile-attack[aria-pressed=true]{border:2px solid #ffd674}
+#mobile-root .mobile-bars{position:absolute;inset:0;pointer-events:none}
+#mobile-root .mobile-bars [data-skills]{position:absolute;right:max(10px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:204px;height:164px;pointer-events:none}
+#mobile-root .mobile-bars [data-items]{position:absolute;left:max(140px,calc(env(safe-area-inset-left) + 122px));bottom:max(16px,env(safe-area-inset-bottom));display:flex;gap:3px;pointer-events:none}
+#mobile-root .mobile-bars button{position:relative;pointer-events:auto;min-width:36px;min-height:36px;width:36px;height:36px;padding:0;border-radius:50%;background:#1b1911ba}
+#mobile-root .mobile-bars [data-skills] button{position:absolute;width:44px;height:44px;min-width:44px;min-height:44px;box-shadow:inset 0 0 0 3px #1118}
+#mobile-root .mobile-bars small{position:absolute;right:3px;bottom:0;font:10px system-ui;text-shadow:1px 1px #000;pointer-events:none}
+#mobile-root .mobile-bars [data-spell=""] small{inset:0;display:grid;place-items:center}
+#mobile-root .mobile-bars span:not(:empty){position:absolute;inset:0;background:#000a;border-radius:50%;display:grid;place-items:center;font-size:13px;pointer-events:none}
+#mobile-root .mobile-bars canvas{width:28px;height:28px;image-rendering:pixelated;pointer-events:none}
+#mobile-root .mobile-bars .mobile-skill-page{left:2px;top:4px;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;font:10px system-ui;box-shadow:none}
+#mobile-root .mobile-bars .mobile-item-page{font:10px system-ui}
+#mobile-root .mobile-aim{position:absolute;top:42%;left:50%;transform:translateX(-50%);pointer-events:auto;background:#44231e}
+#mobile-root .mobile-dialog{position:absolute;inset:max(6px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));pointer-events:auto;z-index:110;background:#151812fa;border:1px solid #a88c54;border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 0 100vmax #0006}
+#mobile-root .mobile-dialog h2{font-size:18px;margin:0;padding:12px 60px 12px 14px;min-height:52px;border-bottom:1px solid #786b49}
+#mobile-root .mobile-close{position:absolute;right:4px;top:4px}
+#mobile-root .mobile-dialog-body{padding:12px;overflow:auto;overscroll-behavior:contain;flex:1;touch-action:pan-y}
+#mobile-root .mobile-dialog-body>button{margin:4px}
+#mobile-root .mobile-dialog-body label{display:block;margin:12px 0}
+#mobile-root .mobile-dialog-body input{max-width:150px;margin-left:10px}
+#mobile-root .mobile-pause{position:absolute;inset:0;display:grid;place-items:center;background:#091010dd;pointer-events:auto;z-index:100;padding:24px;text-align:center}
+#mobile-root .mobile-pause>div{max-width:480px}
+#mobile-root .mobile-pause button{margin:6px}
+#mobile-root .mobile-pause.behind-panels{pointer-events:none;background:transparent;z-index:-1;visibility:hidden}
+html[data-controls=mobile] #windows{position:absolute;inset:0;pointer-events:none;z-index:60}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic){position:absolute!important;inset:max(6px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;max-height:none!important;min-width:0;padding:0;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;font:14px/1.5 system-ui}
+html[data-controls=mobile] #windows>.window:not(:last-child){display:none}
+html[data-controls=mobile] #windows .window:not(.mobile-classic) h2{flex-shrink:0;min-height:52px;font-size:16px;padding:12px 64px 8px 12px;margin:0;letter-spacing:1px;cursor:default}
+html[data-controls=mobile] #windows .window:not(.mobile-classic)>.close{width:44px;height:44px;right:4px;top:3px;font:26px system-ui}
+html[data-controls=mobile] #windows .window:not(.mobile-classic)>.body{flex:1;overflow:auto;max-height:none!important;min-height:0;padding:10px 14px;touch-action:pan-y;overscroll-behavior:contain}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) button,html[data-controls=mobile] #windows>.window:not(.mobile-classic) select,html[data-controls=mobile] #windows>.window:not(.mobile-classic) input{min-height:44px;font:14px system-ui}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) a[data-key]{display:inline-flex;align-items:center;min-height:44px;padding:4px 8px;margin:3px;border:1px solid #776847;border-radius:4px}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .bag-grid,html[data-controls=mobile] #windows>.window:not(.mobile-classic) .shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:6px;position:relative;width:100%;height:auto!important;background:none;margin:8px 0}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .bag-grid .slot,html[data-controls=mobile] #windows>.window:not(.mobile-classic) .shop-grid .slot{position:relative;left:auto!important;top:auto!important;width:100%;height:48px;min-width:44px;min-height:48px;border:1px solid #70603d;background:#111a}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .item-details,html[data-controls=mobile] #windows>.window:not(.mobile-classic) .shop-help,html[data-controls=mobile] #windows>.window:not(.mobile-classic) .character-help,html[data-controls=mobile] #windows>.window:not(.mobile-classic) .forge-hint{display:none}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .char-layout{display:flex;flex-wrap:wrap;gap:16px}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .char-stats{font-size:14px;flex:1;min-width:230px}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .paperdoll{width:320px;max-width:100%;height:390px}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .equipment-slot{min-width:44px;min-height:44px}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .skill-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .quest-browser{height:auto;max-height:none;min-height:100%;grid-template-columns:minmax(180px,1fr) minmax(230px,2fr)}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .quest-list,html[data-controls=mobile] #windows>.window:not(.mobile-classic) .quest-detail{max-height:none;font-size:14px}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .forge-layout{grid-template-columns:repeat(auto-fit,minmax(235px,1fr))}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .forge-chamber,html[data-controls=mobile] #windows>.window:not(.mobile-classic) .forge-picker{max-height:none}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) canvas:not(.doll-art){max-width:100%}
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .map-canvas,html[data-controls=mobile] #win-map canvas{width:100%;height:auto;touch-action:none}
+html[data-controls=mobile] #entry.native-entry{font:14px system-ui;overflow:auto;padding:12px max(16px,env(safe-area-inset-right)) 20px max(16px,env(safe-area-inset-left));background-size:cover;display:flex;flex-direction:column;align-items:center;gap:8px}
+html[data-controls=mobile] #entry[hidden]{display:none!important}
+html[data-controls=mobile] #entry .entry-logo,html[data-controls=mobile] #entry #entry-title,html[data-controls=mobile] #entry #roles,html[data-controls=mobile] #entry .entry-actions,html[data-controls=mobile] #entry #status,html[data-controls=mobile] #entry #entry-cloud,html[data-controls=mobile] #entry .language-picker{position:relative;inset:auto;transform:none;width:auto;max-width:100%;margin:0}
+html[data-controls=mobile] #entry .entry-logo{font-size:23px;letter-spacing:4px}
+html[data-controls=mobile] #entry #roles{width:min(100%,440px)}
+html[data-controls=mobile] #entry #selected-character-art{position:absolute;inset:0 auto auto 0;height:100%;opacity:.3;z-index:0}
+html[data-controls=mobile] #entry>*:not(#selected-character-art){z-index:1}
+html[data-controls=mobile] #entry .entry-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+html[data-controls=mobile] #entry button,html[data-controls=mobile] #entry select,html[data-controls=mobile] #entry input{min-height:44px;font:16px system-ui;min-width:44px}
+html[data-controls=mobile] #entry .entry-actions button{font-size:16px;min-width:110px}
+html[data-controls=mobile] #entry #new-character{position:absolute;inset:6px;transform:none;width:auto;height:auto;background:#191611;border:1px solid #a68b5d;overflow:auto;max-height:none;padding:12px;z-index:5;display:grid;grid-template-columns:1fr 2fr;gap:12px;align-content:start}
+html[data-controls=mobile] #entry #new-character[hidden]{display:none}
+html[data-controls=mobile] #entry #new-character>*{position:static;inset:auto;transform:none;margin:0;max-width:100%;width:auto;height:auto}
+html[data-controls=mobile] #entry #create-character-art{grid-column:1;grid-row:2/8;width:100%;max-height:300px;object-fit:contain}
+html[data-controls=mobile] #entry #new-character h2{grid-column:1/-1;font-size:20px;margin:0}
+html[data-controls=mobile] #entry #name,html[data-controls=mobile] #entry #jobs,html[data-controls=mobile] #entry #sex-buttons,html[data-controls=mobile] #entry #job-description,html[data-controls=mobile] #entry .create-actions,html[data-controls=mobile] #entry .localized-entry-label{grid-column:2;position:static}
+html[data-controls=mobile] #entry #name{width:100%;background:#111;border:1px solid #846e46;padding:8px}
+html[data-controls=mobile] #entry #jobs,html[data-controls=mobile] #entry #sex-buttons{display:flex;flex-wrap:wrap;gap:8px}
+html[data-controls=mobile] #entry #jobs button,html[data-controls=mobile] #entry #sex-buttons button{width:auto;min-width:64px;background:#35291d!important;border:1px solid #8f754d;padding:6px;font:14px system-ui}
+html[data-controls=mobile] #entry #jobs button[aria-pressed=true],html[data-controls=mobile] #entry #sex-buttons button[aria-pressed=true]{border:2px solid #ffde80}
+html[data-controls=mobile] #entry .create-actions{display:flex;gap:10px;flex-wrap:wrap}
+html[data-controls=mobile] #entry .create-actions button{width:auto;padding:8px 14px}
+html[data-controls=mobile] #entry #entry-error{grid-column:1/-1;color:#ffad8b}
+@media(max-height:360px){#mobile-root .mobile-stick{width:104px;height:104px;left:14px;bottom:12px}#mobile-root .mobile-bars [data-items]{left:126px}html[data-controls=mobile] #novice-guide{max-height:90px;width:190px;top:50px}#mobile-root .mobile-vitals{font-size:11px;max-width:330px}}
+@media(orientation:portrait){html[data-controls=mobile] #entry #new-character{grid-template-columns:1fr}html[data-controls=mobile] #entry #create-character-art{display:none}html[data-controls=mobile] #windows>.window:not(.mobile-classic) .quest-browser{grid-template-columns:1fr}#mobile-root .mobile-battle{display:none}#mobile-root .mobile-vitals{font-size:11px}html[data-controls=mobile] #entry .entry-actions{flex-direction:column;width:100%}}
+
+html[data-controls=mobile] #entry .site-game-links{position:static;inset:auto;width:100%;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;order:5}
+html[data-controls=mobile] #entry .site-game-links a{min-height:44px;display:inline-flex;align-items:center;font-size:13px}
+html[data-controls=mobile] #entry .site-game-links span{position:static;display:block;width:100%}
+html[data-controls=mobile] #entry #jobs button:after,html[data-controls=mobile] #entry #sex-buttons button:after{display:none!important}
+html[data-controls=mobile] #novice-guide>p{display:none}
+html[data-controls=mobile] #windows .mobile-panel-tabs{display:flex;gap:6px;padding:4px 12px;border-bottom:1px solid #746039}
+html[data-controls=mobile] #entry #new-character{grid-template-columns:minmax(100px,1fr) 50px minmax(240px,2fr);gap:10px}
+html[data-controls=mobile] #entry #create-character-art{grid-column:1;grid-row:2/7}
+html[data-controls=mobile] #entry #new-character .entry-name-label{grid-column:2;grid-row:2;align-self:center}
+html[data-controls=mobile] #entry #name{grid-column:3;grid-row:2}
+html[data-controls=mobile] #entry #new-character .entry-class-label{grid-column:2;grid-row:3;align-self:center}
+html[data-controls=mobile] #entry #jobs{grid-column:3;grid-row:3}
+html[data-controls=mobile] #entry #new-character .entry-gender-label{grid-column:2;grid-row:4;align-self:center}
+html[data-controls=mobile] #entry #sex-buttons{grid-column:3;grid-row:4}
+html[data-controls=mobile] #entry #job-description{grid-column:2/4;grid-row:5;font-size:13px;line-height:1.5}
+html[data-controls=mobile] #entry .create-actions{grid-column:2/4;grid-row:6}
+@media(orientation:portrait){html[data-controls=mobile] #entry #new-character{grid-template-columns:50px minmax(0,1fr)}html[data-controls=mobile] #entry #new-character .localized-entry-label{grid-column:1!important}html[data-controls=mobile] #entry #name,html[data-controls=mobile] #entry #jobs,html[data-controls=mobile] #entry #sex-buttons{grid-column:2!important}html[data-controls=mobile] #entry #new-character h2,html[data-controls=mobile] #entry #job-description,html[data-controls=mobile] #entry .create-actions,html[data-controls=mobile] #entry #entry-error{grid-column:1/-1!important}}
+
+html[data-controls=mobile] #windows>.window:not(.mobile-classic) .locked-bag-slot{order:1}
+
+html[data-controls=mobile] #buff-effects{right:max(8px,env(safe-area-inset-right));top:52px;max-width:180px;max-height:60px;overflow:auto}html[data-controls=mobile] #buff-effects button{min-width:44px;min-height:44px}html[data-controls=mobile] .portal-marker{min-width:44px;min-height:44px;font:12px system-ui}
+
+#mobile-root .mobile-bars .mobile-skill-page{font:11px system-ui;background:#3e3020}
+html[data-controls=mobile] #stage:has(#windows>.window) #portal-markers,html[data-controls=mobile] #stage:has(#windows>.window) #buff-effects,html[data-controls=mobile] #stage:has(#windows>.window) #novice-guide,html[data-controls=mobile] #stage:has(#windows>.window) #quest-tracker{display:none!important}
+html[data-controls=mobile] #game-update-notice{top:max(8px,env(safe-area-inset-top))!important;bottom:auto!important;left:8px!important;right:8px!important;max-width:none!important;padding:8px!important;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font:13px/1.4 system-ui!important}
+html[data-controls=mobile] #game-update-notice p{flex:1;min-width:150px;margin:0}
+html[data-controls=mobile] #game-update-notice button{min-height:44px;font:14px system-ui}
+
+/* Empty notifications used to leave a 24 × 12 dark box over the character. */
+html[data-controls=mobile] #notice:empty{display:none}
+html[data-controls=mobile] #notice{top:54px;max-width:52%;font:12px/1.4 system-ui;padding:4px 8px;background:#191811bd}
+
+/* Original game windows, scaled locally. PC styles and hit coordinates are untouched. */
+html[data-controls=mobile] #windows>.mobile-classic{left:12px!important;right:auto!important;top:max(12px,env(safe-area-inset-top))!important;bottom:auto!important;transform:scale(var(--classic-scale,.82))!important;transform-origin:top left;max-height:var(--classic-height)!important;overflow:auto!important;pointer-events:auto;font:13px SimSun,"Songti SC",serif;touch-action:pan-y;overscroll-behavior:contain}
+html[data-controls=mobile] #windows>.mobile-classic:not(:last-child){display:none}
+html[data-controls=mobile] #windows>.mobile-classic>.close{width:34px;height:30px;right:5px;top:4px;font-size:23px;line-height:24px;z-index:5}
+html[data-controls=mobile] #windows>.mobile-classic .character-help{display:none}
+html[data-controls=mobile] #windows>.mobile-classic .slot,html[data-controls=mobile] #windows>.mobile-classic .skill-card,html[data-controls=mobile] #windows>.mobile-classic button{touch-action:manipulation}
+html[data-controls=mobile] #windows>.mobile-classic .mobile-panel-tabs{display:flex;gap:4px;padding:4px 0}
+#mobile-root .mobile-inspector{inset:8px auto auto;max-height:calc(var(--mobile-height,100dvh) - 16px);width:min(300px,45vw);box-shadow:0 3px 12px #0008;border-radius:3px;background:#171810f5;font:12px/1.4 system-ui}
+#mobile-root .mobile-inspector[data-side=right]{right:max(8px,env(safe-area-inset-right));left:auto}
+#mobile-root .mobile-inspector[data-side=left]{left:max(8px,env(safe-area-inset-left));right:auto}
+#mobile-root .mobile-inspector h2{font-size:14px;min-height:38px;padding:8px 48px 7px 10px}
+#mobile-root .mobile-inspector .mobile-close{font-size:12px;min-height:32px;min-width:36px;padding:3px 6px}
+#mobile-root .mobile-inspector .mobile-dialog-body{padding:8px;flex:initial}
+#mobile-root .mobile-inspector .native-item-card,#mobile-root .mobile-inspector .native-skill-card{font-size:12px}
+#mobile-root .mobile-inspector .mobile-dialog-body>button{min-height:34px;padding:4px 8px;margin:3px;font-size:12px}
+@media(max-width:700px){#mobile-root .mobile-stick{width:100px;height:100px;left:max(12px,env(safe-area-inset-left));bottom:14px}#mobile-root .mobile-stick i{width:42px;height:42px}#mobile-root .mobile-bars [data-items]{left:122px}#mobile-root .mobile-vitals{max-width:310px;font-size:11px}}
+html[data-controls=mobile] #stage:has(#windows>.window) #target{display:none}
+html[data-controls=mobile] #stage:has(#windows>.mobile-classic) #notice{left:auto;right:max(8px,env(safe-area-inset-right));top:auto;bottom:8px;transform:none;max-width:45%}
+
+/* Corner utilities sit above the skill/attack cluster, not over touch targets. */
+html[data-controls=mobile] #utility-actions{right:max(10px,env(safe-area-inset-right));bottom:max(186px,calc(env(safe-area-inset-bottom) + 176px));gap:4px;z-index:12}
+html[data-controls=mobile] #utility-actions>button{display:block!important;min-width:54px;min-height:44px;height:44px;padding:4px 8px;font:12px system-ui,sans-serif;touch-action:manipulation}
+html[data-controls=mobile]:has(#windows .window) #utility-actions,html[data-controls=mobile][data-mobile-paused] #utility-actions{display:none}
+
+html[data-controls=mobile] .station-choices{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px}
+html[data-controls=mobile] #windows>.window.station-dialog .station-choices a[data-key]{display:flex;min-height:44px;margin:0;padding:5px 8px;justify-content:center}

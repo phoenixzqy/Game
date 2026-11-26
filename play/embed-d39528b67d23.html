@@ -1,0 +1,70 @@
+<!doctype html><html lang="zh-CN"><head><meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; frame-src 'self'; form-action 'none'"><script src="/Game/__local__/offline.js"></script><link rel="stylesheet" href="/Game/__local__/offline.css"><base href="/Game/"><meta name="robots" content="noindex,follow"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title data-i18n="common.brand">旧境传说</title><link rel="icon" href="data:,">
+<link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="data:,"><meta name="dream-build" content="d39528b67d23"><meta name="dream-version" content="v1.4.6"><script>
+(function(){
+if(window.parent!==window&&new URL(location.href).searchParams.get('embed')==='home'){window.backmirAnalyticsEmbedded=true;return;}
+let excluded=false;try{excluded=sessionStorage.getItem('backmir.analyticsExcluded')==='1';if(new URL(location.href).searchParams.get('analytics')==='off'){excluded=true;sessionStorage.setItem('backmir.analyticsExcluded','1');}}catch{}
+if(location.origin!==''||location.pathname.startsWith('/__capture')||excluded){window.backmirAnalyticsDisabled=true;window.gtag=function(){};return;}
+const tag=document.createElement('script');tag.async=true;tag.src='https://www.googletagmanager.com/gtag/js?id=G-77X28NB22S';document.head.append(tag);
+window.dataLayer=window.dataLayer||[];
+window.gtag=function(){dataLayer.push(arguments);};
+const gtag=window.gtag;
+gtag('js',new Date());
+let cleanReferrer='';try{const u=new URL(document.referrer);cleanReferrer=u.origin+u.pathname;}catch{}
+gtag('config','G-77X28NB22S',{page_location:location.origin+location.pathname,page_referrer:cleanReferrer,allow_google_signals:false,allow_ad_personalization_signals:false});
+document.addEventListener('click',function(e){const a=e.target.closest?.('a[href]');if(a&&!a.hasAttribute?.('data-game-standalone')&&new URL(a.href,location.href).pathname==="/Game/play/")gtag('event','game_entry_click',{source_path:location.pathname});});
+})();
+</script><script src="/Game/site-assets/account-nav.js" defer></script></head><body><main id="stage"><canvas id="world" data-i18n-aria-label="hud.canvas"></canvas><div id="location"></div><div id="target"></div><div id="notice" role="status"></div>
+<section id="entry" class="native-entry"><nav class="site-game-links" data-i18n-aria-label="site.game.nav"><a data-site-path="/Game/" href="/Game/" data-i18n="site.game.home"></a><a data-site-path="/Game/guide/" href="/Game/guide/" target="_blank" rel="noopener" data-i18n="site.game.guide"></a><a data-site-path="/Game/guide/saves/" href="/Game/guide/saves/" target="_blank" rel="noopener" data-i18n="site.game.navSaves"></a><a href="/Game/leaderboard/" target="_blank" rel="noopener" data-leaderboard-link>排行榜</a><a href="/Game/community/" target="_blank" rel="noopener" data-community-link>社区</a><a href="/Game/account/" target="_blank" rel="noopener" data-account-link>账号</a><span data-network-status data-i18n="site.game.connecting"></span></nav>
+ <h1 class="entry-logo" data-i18n="common.brand"></h1><p id="entry-title" data-i18n="entry.select"></p>
+ <div id="roles" data-i18n-aria-label="entry.existing"></div>
+ <img id="selected-character-art" data-i18n-alt="entry.preview" src="/Game/assets/entry/Warrior-Male.webp">
+ <div class="entry-actions"><button id="new-role" data-i18n="entry.create"></button><button id="entry-saves" data-i18n="entry.saves"></button><button id="enter-role" data-i18n="entry.enter"></button></div>
+ <div id="new-character" class="create-character" hidden role="dialog" data-i18n-aria-label="entry.create">
+  <h2 class="localized-entry-heading" data-i18n="entry.create"></h2>
+  <label class="localized-entry-label entry-name-label" for="name" data-i18n="entry.name"></label>
+  <span class="localized-entry-label entry-class-label" data-i18n="entry.class"></span>
+  <span class="localized-entry-label entry-gender-label" data-i18n="entry.gender"></span>
+  <img id="create-character-art" data-i18n-alt="entry.preview" src="/Game/assets/entry/Warrior-Male.webp">
+  <input id="name" maxlength="12" data-i18n-placeholder="entry.namePrompt" data-i18n-aria-label="entry.name" autocomplete="off">
+  <select id="gender" data-i18n-aria-label="entry.gender" hidden><option value="Male" data-i18n="entry.male"></option><option value="Female" data-i18n="entry.female"></option></select>
+  <div id="jobs"><button data-job="Warrior" data-i18n-aria-label="entry.warrior" data-i18n-title="entry.warrior"></button><button data-job="Wizard" data-i18n-aria-label="entry.wizard" data-i18n-title="entry.wizard"></button><button data-job="Taoist" data-i18n-aria-label="entry.taoist" data-i18n-title="entry.taoist"></button><button id="random-job" data-i18n-aria-label="entry.random" data-i18n-title="entry.random"></button></div>
+  <div id="sex-buttons"><button data-gender="Male" data-i18n-aria-label="entry.male" data-i18n-title="entry.male"></button><button data-gender="Female" data-i18n-aria-label="entry.female" data-i18n-title="entry.female"></button></div>
+  <div class="create-actions"><button id="confirm-create" data-i18n="entry.createAction"></button><button id="cancel-create" data-i18n="entry.close"></button></div>
+  <p id="job-description"></p><p id="entry-error" role="alert"></p>
+ </div>
+ <form id="account-form" hidden><input id="account-name"><input id="account-password"><button id="account-submit"></button><button id="account-cancel"></button><p id="account-error"></p></form>
+ <div id="account-actions" hidden></div><small id="status"></small>
+</section>
+
+<div id="windows"></div><div id="tip" hidden></div>
+<footer id="hud" hidden><div id="orb"><div id="hp-liquid"></div><div id="mp-liquid"></div><span id="hp"></span><span id="mp"></span></div><span id="level"></span><span id="name-label"></span><div id="log"></div><div id="hotbar"></div><div id="native-buttons"><button id="character" data-i18n-title="hud.character"></button><button id="bag" data-i18n-title="hud.bag"></button><button id="skills" data-i18n-title="hud.skills"></button><button id="quests" data-i18n-title="hud.quests"></button><button id="map" data-i18n-title="hud.map"></button></div><button id="menu" data-i18n-title="hud.menu">◉</button><span id="gold"></span><div id="experience"><i></i></div></footer>
+<div id="keys" data-i18n="hud.keys"></div></main><style>body{margin:0;background:#11150f;color:#eee2c4}#stage[hidden]{display:none!important}</style><section id="version-gate" style="position:fixed;bottom:16px;left:16px;z-index:100000;max-width:30rem;padding:12px 18px;background:#24251edd;color:#eee2c4;font:16px/1.6 system-ui"><p role="status" style="margin:0"></p><button hidden></button></section><script type="module">const backgroundGameUpdate=async function backgroundGameUpdate({locale,expected,notify,serviceWorker=navigator.serviceWorker,Channel=MessageChannel}){
+ if(!serviceWorker)return;
+ const reg=await serviceWorker.register("/Game/sw.js?lang="+encodeURIComponent(locale),{scope:"/Game/",updateViaCache:'none'});
+ const seen=new WeakSet();
+ const offer=worker=>{if(!worker)return;const channel=new Channel();const timer=setTimeout(()=>{channel.port1.close();channel.port2.close();},500);channel.port1.onmessage=event=>{clearTimeout(timer);channel.port1.close();channel.port2.close();if(event.data?.cache&&event.data.cache!==expected)notify();};worker.postMessage({type:'GET_CACHE_VERSION'},[channel.port2]);};
+ const check=()=>{offer(reg.waiting);const worker=reg.installing;if(worker&&!seen.has(worker)){seen.add(worker);worker.addEventListener('statechange',()=>{if(worker.state==='installed'&&serviceWorker.controller)offer(worker);});}};
+ reg.addEventListener('updatefound',check);check();
+ await reg.update();check();
+};(async function bootGame(config){
+ const normalize=value=>/^es(?:-|$)/i.test(value||'')?'es':/^en(?:-|$)/i.test(value||'')?'en':/^zh(?:-|$)/i.test(value||'')?'zh-CN':null;
+ let stored;try{stored=localStorage.getItem(config.preferenceKey);}catch{}
+ const locale=normalize(new URL(location.href).searchParams.get('lang'))||normalize(stored)||(navigator.languages||[]).map(normalize).find(Boolean)||'zh-CN';
+ const labels=config.labels[locale],panel=document.getElementById('version-gate'),status=panel.querySelector('[role=status]'),retry=panel.querySelector('button');
+ document.documentElement.lang=locale;document.title=labels.title;status.textContent=labels.loading;retry.textContent=labels.retry;
+ document.getElementById('stage').hidden=true;
+ const pin=()=>navigator.serviceWorker?.controller?.postMessage({type:'PIN_GAME_CACHE',cache:config.cache});pin();navigator.serviceWorker?.addEventListener('controllerchange',pin);
+ const load=(tag,props)=>new Promise((resolve,reject)=>{const el=Object.assign(document.createElement(tag),props);el.onload=resolve;el.onerror=()=>{el.remove();reject(Error('shell-load'));};document.head.append(el);});
+ const notify=()=>{if(document.getElementById('game-update-notice'))return;const box=document.createElement('aside');box.id='game-update-notice';box.setAttribute('role','status');box.style.cssText='position:fixed;bottom:18px;right:18px;z-index:99999;max-width:380px;padding:16px;background:#29291fee;color:#fff;border:1px solid #bda46d;font:15px/1.5 system-ui';const message=document.createElement('p');message.textContent=labels.available;const update=document.createElement('button');update.textContent=labels.update;update.onclick=()=>{if(document.dispatchEvent(new CustomEvent('backmir-update-request',{cancelable:true}))){document.getElementById('menu')?.click();document.getElementById('force-update')?.click();}};const later=document.createElement('button');later.textContent=labels.later;later.onclick=()=>box.remove();box.append(message,update,later);document.body.append(box);};
+ try{
+  // No register(), network probe or installation is awaited before rendering.
+  if(new URL(location.href).searchParams.get('embed')==='home'){const {installChildEmbed}=await import(config.bridge||"/Game/site-assets/home-bridge.mjs");installChildEmbed();}
+  let canonical=document.querySelector('link[rel=canonical]');if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.append(canonical);}canonical.href=location.origin+"/Game/play/?lang="+locale;
+  await Promise.all(config.styles.map(href=>load('link',{rel:'stylesheet',href})));
+  document.getElementById('stage').hidden=false;
+  await load('script',{type:'module',src:config.client||"/Game/client.js"});panel.remove();
+  load('script',{type:'module',src:"/Game/site-assets/weak-network.js"}).catch(()=>{});
+  backgroundGameUpdate({locale,expected:config.cache,notify}).catch(()=>{});
+ }catch{window.backmirEmbed?.post('error',{reason:'boot'});document.getElementById('stage').hidden=true;status.textContent=labels.failed;retry.hidden=false;}
+ retry.onclick=()=>location.reload();
+})({"cache":"dream-h5-site-d39528b67d23","client":"/Game/site-assets/seo-d39528b67d23/client.js","bridge":"/Game/site-assets/seo-d39528b67d23/home-bridge.mjs","preferenceKey":"backmir.language","labels":{"zh-CN":{"loading":"正在载入游戏…","available":"新版本已就绪，可保存进度后更新。","update":"保存并更新","later":"稍后","title":"旧境传说","checking":"正在核对游戏版本，必要时自动更新。角色存档保留。","retry":"重新检查","failed":"游戏更新未完成，请联网后重试。角色存档未清除。"},"en":{"loading":"Loading game…","available":"A new version is ready. Save your progress and update when convenient.","update":"Save and update","later":"Later","title":"BackMir","checking":"Checking the game version and updating if needed. Your characters will be kept.","retry":"Check Again","failed":"The game update could not finish. Connect to the internet and retry. Your characters have not been deleted."},"es":{"loading":"Cargando el juego…","available":"Hay una nueva versión. Guarda tu progreso y actualiza cuando quieras.","update":"Guardar y actualizar","later":"Más tarde","title":"BackMir","checking":"Comprobando la versión y actualizando si hace falta. Tus personajes se conservarán.","retry":"Volver a comprobar","failed":"No se pudo completar la actualización. Conéctate a internet e inténtalo de nuevo. Tus personajes no se han eliminado."}},"styles":["/Game/style.css","/Game/site-assets/seo-d39528b67d23/game.css"]});</script></body></html>

@@ -1,0 +1,11 @@
+/* Excluded online features; local characters and local saves stay available. */
+a[hidden], [data-community-link], [data-account-link],
+#cloud-save, #cloud-account, #entry-cloud, #account-login, #email-binding {
+  display: none !important;
+}
+[data-game-account-summary], [data-auto-cloud-status], [data-official-action="cloud"] {
+  display: none !important;
+}
+#lb-refresh, #lb-personal, #lb-admin, #lb-report-dialog, [data-report-entry] {
+  display: none !important;
+}

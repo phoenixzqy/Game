@@ -1,0 +1,1 @@
+{"schemaVersion":1,"locale":"zh-CN","messages":{"skill.hydra.damage":"单发伤害：（魔法攻击＋{{base}}）×{{percent}}%（当前{{low}}–{{high}}，减伤前）","skill.hydra.timing":"持续{{seconds}}秒；整只蛇每{{interval}}秒发射一颗火球。","skill.hydra.single":"同时仅存在一只；三个头轮流攻击，重新施放替换旧蛇。","skill.hydra.trial":"技能书最高3级；手工或手镯等装备特殊属性提升至最高7级。","skill.hydra.local":"火系召唤"}}
