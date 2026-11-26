@@ -18653,49 +18653,73 @@ function autoBattleTaoist({ g, r, cfg, api, enemies }) {
     )
       candidates.push(autoBattleCandidate(sk, r, expected - alive, 2, api, r));
   }
+  const poisoning = autoBattleSkill(g, r, cfg, api, "Poisoning");
+  if (poisoning) {
+    // Poisoning is centered on the player and affects the entire cast range.
+    // Score only missing poison, then cover new spawns before other debuffs.
+    let poisonType = "Green";
+    if (!poisoning.d.DreamSkill) {
+      const poison = [...r.equipment, ...r.inventory].find(
+        (item) =>
+          item &&
+          g.defs.get(item.id)?.Type === "Amulet" &&
+          g.defs.get(item.id)?.DreamType !== 17 &&
+          [1, 2].includes(g.defs.get(item.id)?.Shape),
+      );
+      if (g.defs.get(poison?.id)?.Shape === 2) poisonType = "Red";
+    }
+    const remaining = (percent) =>
+      1 - Math.max(0, Math.min(100, percent || 0)) / 100;
+    const damage =
+      api.poison(poisoning.level, r.stats) *
+      (20 +
+        7 * poisoning.level +
+        ((r.stats.MinSC || 0) + (r.stats.MaxSC || 0)));
+    const benefit = enemies.reduce((sum, target) => {
+      if (
+        autoBattleDistance(r, target) > (poisoning.d.Range || 7) ||
+        autoBattleHasBuff(g, target, poisonType) ||
+        autoBattlePending(g, r, target, "Poisoning")
+      )
+        return sum;
+      const profile = api.profile(g, target);
+      const chance = remaining(profile?.statusAvoidPercent?.[poisonType]);
+      const factor =
+        remaining(target.stats.PoisonDodgePercent) *
+        remaining(target.stats.PoisonRecoveryPercent) *
+        chance;
+      if (profile?.poisonImmune || !factor) return sum;
+      return sum + Math.max(1, Math.min(target.hp, damage * factor));
+    }, 0);
+    if (benefit)
+      candidates.push(autoBattleCandidate(poisoning, r, benefit, 3, api, r));
+  }
   candidates.push(
-    ...autoBattleBuffCandidates(g, r, cfg, api, ["Hiding"], 3),
+    ...autoBattleBuffCandidates(g, r, cfg, api, ["Hiding"], 4),
     ...autoBattleBuffCandidates(g, r, cfg, api, ["InnateQi"], 5),
   );
-  for (const spell of ["Poisoning", "GhostBurn"]) {
+  for (const spell of ["GhostBurn"]) {
     const sk = autoBattleSkill(g, r, cfg, api, spell);
     if (!sk) continue;
     for (const target of enemies) {
       const profile = api.profile(g, target);
       const remaining = (percent) =>
         1 - Math.max(0, Math.min(100, percent || 0)) / 100;
-      const chance = remaining(
-        profile?.statusAvoidPercent?.[spell === "Poisoning" ? "Green" : spell],
-      );
-      const poisonFactor =
-        remaining(target.stats.PoisonDodgePercent) *
-        remaining(target.stats.PoisonRecoveryPercent);
+      const chance = remaining(profile?.statusAvoidPercent?.[spell]);
       if (
         autoBattleDistance(r, target) > sk.d.Range ||
-        autoBattleHasBuff(g, target, spell === "Poisoning" ? "Green" : spell) ||
+        autoBattleHasBuff(g, target, spell) ||
         autoBattlePending(g, r, target, spell) ||
-        !chance ||
-        (spell === "Poisoning" && (profile?.poisonImmune || !poisonFactor))
+        !chance
       )
         continue;
-      const benefit =
-        spell === "Poisoning"
-          ? Math.min(
-              target.hp,
-              api.poison(sk.level, r.stats) *
-                (20 +
-                  7 * sk.level +
-                  ((r.stats.MinSC || 0) + (r.stats.MaxSC || 0))) *
-                poisonFactor *
-                chance,
-            )
-          : Math.max(
-              1,
-              ((((target.stats.MinDC || 0) + (target.stats.MaxDC || 0)) / 2) *
-                (3 + 2 * sk.level)) /
-                100,
-            ) * chance;
-      candidates.push(autoBattleCandidate(sk, target, benefit, 4, api, r));
+      const benefit = Math.max(
+        1,
+        ((((target.stats.MinDC || 0) + (target.stats.MaxDC || 0)) / 2) *
+          (3 + 2 * sk.level)) /
+          100,
+      ) * chance;
+      candidates.push(autoBattleCandidate(sk, target, benefit, 5, api, r));
     }
   }
   const beast = autoBattleSkill(g, r, cfg, api, "BeastArmour");

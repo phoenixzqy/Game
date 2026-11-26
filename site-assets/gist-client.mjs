@@ -11,7 +11,13 @@ export const saveFile = game => {
   return `backmir-${game}.json`;
 };
 export class GistError extends Error {
-  constructor(code, until = 0) { super(code); this.code = code; this.until = until; }
+  constructor(code, until = 0, status = 0) { super(code); this.code = code; this.until = until; this.status = status; }
+}
+function pauseRequests(value, code, until) {
+  if (until >= (value.until || 0)) {
+    value.until = until;
+    value.untilCode = code;
+  }
 }
 function readJSON(storage, key, fallback) {
   const text = storage.getItem(key);
@@ -24,6 +30,11 @@ export class GistClient {
     Object.assign(this, { storage, fetcher, now, locks });
   }
   config() { return readJSON(this.storage, CONFIG_KEY, {}); }
+  get waiting() {
+    if (!this.budgetScope || this.budgetScope.revision !== this.config().revision) return null;
+    const value = readJSON(this.storage, this.budgetScope.key, {});
+    return value.until > this.now() ? { code: value.untilCode || 'cooldown', until: value.until } : null;
+  }
   configure(token, gistId = '', auto = true) {
     token = token.trim(); gistId = gistId.trim();
     if (!/^[A-Za-z0-9_]+$/.test(token) || (gistId && !/^[a-f0-9]{5,64}$/i.test(gistId)))
@@ -50,6 +61,7 @@ export class GistClient {
     if (!this.locks) throw new GistError('unsupported');
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(account.token));
     const id = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+    this.budgetScope = { revision: account.revision, key: 'backmir-gist-rate-v1:' + id };
     return this.locks.request('backmir-gist:' + id, async () => {
       this.assertAccount(account);
       return action(this.config(), 'backmir-gist-rate-v1:' + id);
@@ -67,13 +79,16 @@ export class GistClient {
     value.requests = (value.requests || []).filter(t => t > now - HOUR);
     value.writes = (value.writes || []).filter(t => t > now - HOUR);
     if (value.suspended === account.revision) throw new GistError('permission');
-    let until = value.until || 0;
+    if (value.until > now) throw new GistError(value.untilCode || 'cooldown', value.until);
+    value.until = 0;
+    delete value.untilCode;
+    let until = 0;
     const minute = value.requests.filter(t => t > now - MINUTE);
     if (minute.length >= 12) until = Math.max(until, minute[0] + MINUTE);
     if (value.requests.length >= 480) until = Math.max(until, value.requests[0] + HOUR);
     if (write && value.writes.length) until = Math.max(until, value.writes.at(-1) + 10_000);
     if (write && value.writes.length >= 360) until = Math.max(until, value.writes[0] + HOUR);
-    if (until > now) throw new GistError('rate', until);
+    if (until > now) throw new GistError('throttle', until);
     value.requests.push(now);
     if (write) value.writes.push(now);
     // Reserve before sending, including failed and timed-out requests.
@@ -96,16 +111,17 @@ export class GistClient {
           ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(20_000),
       });
-    } catch {
+    } catch (error) {
+      const code = error?.name === 'TimeoutError' ? 'timeout' : 'network';
       value.failures = (value.failures || 0) + 1;
-      value.until = this.now() + Math.min(HOUR, MINUTE * 2 ** Math.min(value.failures - 1, 6));
+      pauseRequests(value, code, this.now() + Math.min(HOUR, MINUTE * 2 ** Math.min(value.failures - 1, 6)));
       this.storage.setItem(key, JSON.stringify(value));
-      throw new GistError('network', value.until);
+      throw new GistError(code, value.until);
     }
     const remaining = response.headers.get('x-ratelimit-remaining');
     const reset = Number(response.headers.get('x-ratelimit-reset')) * 1000;
     if (remaining !== null && Number(remaining) <= 25)
-      value.until = Math.max(value.until || 0, reset > this.now() ? reset + 1000 : this.now() + HOUR);
+      pauseRequests(value, 'quota', reset > this.now() ? reset + 1000 : this.now() + HOUR);
     let result;
     try {
       const content = await response.text();
@@ -113,7 +129,7 @@ export class GistClient {
       else { try { result = JSON.parse(content); } catch { result = {}; } }
     } catch {
       value.failures = (value.failures || 0) + 1;
-      value.until = Math.max(value.until || 0, this.now() + Math.min(HOUR, MINUTE * 2 ** Math.min(value.failures - 1, 6)));
+      pauseRequests(value, 'network', this.now() + Math.min(HOUR, MINUTE * 2 ** Math.min(value.failures - 1, 6)));
       this.storage.setItem(key, JSON.stringify(value));
       throw new GistError('network', value.until);
     }
@@ -124,19 +140,19 @@ export class GistClient {
       value.failures = (value.failures || 0) + 1;
       const retryAt = retry === null ? 0 : /^\d+$/.test(retry)
         ? this.now() + Number(retry) * 1000 : Date.parse(retry);
-      value.until = Math.max(value.until || 0, retryAt || 0,
-        this.now() + Math.min(HOUR, MINUTE * 2 ** Math.min(value.failures - 1, 6)));
+      pauseRequests(value, 'rate', Math.max(value.until || 0, retryAt || 0,
+        this.now() + Math.min(HOUR, MINUTE * 2 ** Math.min(value.failures - 1, 6))));
     } else if (response.status === 401 || response.status === 403) value.suspended = account.revision;
     else if (response.ok) value.failures = 0;
     else if (response.status >= 500) {
       value.failures = (value.failures || 0) + 1;
-      value.until = Math.max(value.until || 0, this.now() + Math.min(HOUR, MINUTE * 2 ** Math.min(value.failures - 1, 6)));
+      pauseRequests(value, 'server', this.now() + Math.min(HOUR, MINUTE * 2 ** Math.min(value.failures - 1, 6)));
     }
     this.storage.setItem(key, JSON.stringify(value));
     this.assertAccount(account);
-    if (rateLimited) throw new GistError('rate', value.until);
+    if (rateLimited) throw new GistError('rate', value.until, response.status);
     if (!response.ok) throw new GistError(({ 401: 'permission', 403: 'permission', 404: 'missing',
-      422: 'invalid' })[response.status] || 'network', value.until);
+      422: 'invalid' })[response.status] || (response.status >= 500 ? 'server' : 'http'), value.until, response.status);
     return result;
   }
   async discover(account, key) {
