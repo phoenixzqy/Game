@@ -1,4 +1,4 @@
-const CACHE = "backmir-darkforged-pages-6e9d682e4d43c3f8";
+const CACHE = "backmir-darkforged-pages-43a10cc9bd79cdca";
 const OFFLINE_ASSETS = (function createOfflineAssets({
   storage = globalThis.caches,
   baseURL = globalThis.location?.href,
@@ -126,7 +126,9 @@ const OFFLINE_ASSETS = (function createOfflineAssets({
       const saved = await bestEffort(() => hit.json());
       if (saved?.cache === cacheName) return saved;
     }
-    const response = await fetcher(url);
+    const fresh = new URL(url);
+    fresh.searchParams.set("__release", cacheName);
+    const response = await fetcher(fresh.href, { cache: "no-store" });
     if (!response.ok) throw Error("Offline manifest HTTP " + response.status);
     const current = await response.clone().json();
     if (current.cache !== cacheName) throw Error("Offline manifest version mismatch: " + cacheName);
@@ -354,6 +356,8 @@ const LANGUAGE_ASSETS = {
     ],
   },
   SHELL = [
+    "/Game/site-assets/game-preferences.mjs",
+    "/Game/site-assets/game-update.mjs",
     "./cloud/gist-client.mjs",
     "./cloud/gist-cloud.mjs",
     "./collection-nav.js",
@@ -465,101 +469,227 @@ const LANGUAGE_ASSETS = {
     "./mobile/entry.72846b172b40.js",
   "/Game/__local__/offline.js","/Game/__local__/offline.css",];
 
-
-self.addEventListener("install", (event) =>
-  event.waitUntil(
-    (async () => {
-      const pages = (await self.clients.matchAll({ includeUncontrolled: true })).filter((client) =>
-        new URL(client.url).pathname.startsWith("/Game/play/darkforged/"),
+const GAME_SW = {
+  owns: (name) =>
+    typeof name === "string" && name.startsWith("backmir-darkforged-"),
+  context: (u) => u.pathname.startsWith("/Game/play/darkforged/"),
+  request(u) {
+    const site = new URL("../../", self.registration.scope);
+    if (!(u.pathname.startsWith("/Game/play/darkforged/") || u.pathname.startsWith("/Game/_shared/") || u.pathname.startsWith("/Game/__local__/")))
+      return ["site-assets/", "_shared/", "__local__/"].some((path) =>
+        u.pathname.startsWith(new URL(path, site).pathname),
       );
-      const requested = [
-        new URL(self.location.href).searchParams.get("lang"),
-        ...pages.map((client) => new URL(client.url).searchParams.get("lang")),
-      ];
-      const codes = new Set(["zh-CN"]);
-      for (const value of requested) {
-        const normalized = String(value || "")
-          .replaceAll("_", "-")
-          .toLowerCase();
-        const code =
-          Object.keys(LANGUAGE_ASSETS).find((code) => code.toLowerCase() === normalized) ||
-          Object.keys(LANGUAGE_ASSETS).find(
-            (code) => code.toLowerCase() === normalized.split("-")[0],
-          );
-        if (code) codes.add(code);
+    return true;
+  },
+};
+
+// Bundled after each game's CACHE, SHELL, language assets and request policy.
+(function gameCacheRuntime() {
+  const PINS = "backmir-game-client-pins";
+  const key = (id) =>
+    new Request(
+      self.location.origin + "/Game/__cache_pin__/" + encodeURIComponent(id),
+    );
+  const owned = (name) => GAME_SW.owns(name);
+  const readPin = async (id) =>
+    id ? (await (await caches.open(PINS)).match(key(id)))?.text() : null;
+  const pin = async (id, name) => {
+    if (id && owned(name) && (await caches.keys()).includes(name))
+      await (await caches.open(PINS)).put(key(id), new Response(name));
+  };
+  const manifests = new Map();
+  const manifestFor = (name) => {
+    if (!manifests.has(name))
+      manifests.set(
+        name,
+        OFFLINE_ASSETS.manifest(name).catch(() => {
+          manifests.delete(name);
+          return null;
+        }),
+      );
+    return manifests.get(name);
+  };
+  const activeCache = () =>
+    new Promise((resolve) => {
+      const active = self.registration.active;
+      if (!active) {
+        resolve(null);
+        return;
       }
-      const cache = await caches.open(CACHE);
-      await cache.addAll([
-        ...new Set([...SHELL, ...[...codes].flatMap((code) => LANGUAGE_ASSETS[code])]),
-      ]);
-    })(),
-  ),
-);
-(function darkOfflineRuntime() {
-  const manifests = new Map(),
-    manifestFor = (name) => {
-      if (!manifests.has(name))
-        manifests.set(
-          name,
-          OFFLINE_ASSETS.manifest(name).catch(() => {
-            manifests.delete(name);
-            return null;
+      const channel = new MessageChannel();
+      const done = (value) => {
+        clearTimeout(timer);
+        channel.port1.close();
+        channel.port2.close();
+        resolve(value);
+      };
+      const timer = setTimeout(() => done(null), 2000);
+      channel.port1.onmessage = (event) => done(event.data?.cache);
+      active.postMessage({ type: "GET_CACHE_VERSION" }, [channel.port2]);
+    });
+  self.addEventListener("install", (event) =>
+    event.waitUntil(
+      (async () => {
+        const pages = (
+          await self.clients.matchAll({
+            includeUncontrolled: true,
+            type: "all",
+          })
+        ).filter((client) => GAME_SW.context(new URL(client.url)));
+        const old = await activeCache();
+        // Old installed workers had no pins in Hell/Darkforged. Capture their release
+        // before claiming live documents, including dedicated game workers.
+        for (const client of pages)
+          if (!(await readPin(client.id)) && old) await pin(client.id, old);
+        const requested = [
+          new URL(self.location.href).searchParams.get("lang"),
+          ...pages.map((client) =>
+            new URL(client.url).searchParams.get("lang"),
+          ),
+        ];
+        const codes = new Set(["zh-CN"]);
+        for (const value of requested) {
+          const normalized = String(value || "")
+            .replaceAll("_", "-")
+            .toLowerCase();
+          const code =
+            Object.keys(LANGUAGE_ASSETS).find(
+              (code) => code.toLowerCase() === normalized,
+            ) ||
+            Object.keys(LANGUAGE_ASSETS).find(
+              (code) => code.toLowerCase() === normalized.split("-")[0],
+            );
+          if (code) codes.add(code);
+        }
+        const cache = await caches.open(CACHE);
+        const manifest = await OFFLINE_ASSETS.manifest(CACHE);
+        const files = [
+          ...new Set([
+            ...SHELL,
+            ...[...codes].flatMap((code) => LANGUAGE_ASSETS[code]),
+          ]),
+        ];
+        let next = 0;
+        await Promise.all(
+          Array.from({ length: Math.min(8, files.length) }, async () => {
+            while (next < files.length) {
+              const file = files[next++],
+                url = new URL(file, self.location.href);
+              url.searchParams.set("__release", CACHE);
+              const response = await fetch(url, { cache: "no-store" });
+              if (!response.ok)
+                throw Error("Shell HTTP " + response.status + ": " + file);
+              await OFFLINE_ASSETS.put(file, response.clone(), manifest, cache);
+              await cache.put(new URL(file, self.location.href), response);
+            }
           }),
         );
-      return manifests.get(name);
-    };
-  self.addEventListener("message", (e) => {
-    if (["ACTIVATE_UPDATE", "SKIP_WAITING"].includes(e.data?.type)) e.waitUntil(self.skipWaiting());
-    if (e.data?.type === "GET_CACHE_VERSION") e.ports?.[0]?.postMessage({ cache: CACHE });
-  });
-  self.addEventListener("activate", (e) =>
-    e.waitUntil(
-      (async () => {
-        const names = await caches.keys(),
-          previous = names.filter((k) => k.startsWith("backmir-darkforged-") && k !== CACHE).at(-1);
-        for (const k of names)
-          if (k.startsWith("backmir-darkforged-") && k !== CACHE && k !== previous)
-            await caches.delete(k);
-        await self.clients.claim();
+        // Existing tabs keep their pinned bytes. The next navigation gets the new
+        // shell without a DevTools reset or clearing character storage.
+        await self.skipWaiting();
       })(),
     ),
   );
-  self.addEventListener("fetch", (e) => {
-    const u = new URL(e.request.url);
+  self.addEventListener("message", (event) => {
+    if (event.data?.type === "PIN_GAME_CACHE")
+      event.waitUntil(pin(event.source?.id, event.data.cache));
+    if (event.data?.type === "GET_CACHE_VERSION")
+      event.ports?.[0]?.postMessage({ cache: CACHE });
     if (
-      e.request.method !== "GET" ||
+      ["ACTIVATE_UPDATE", "SKIP_WAITING"].includes(event.data?.type) ||
+      event.data === "SKIP_WAITING"
+    )
+      event.waitUntil(self.skipWaiting());
+  });
+  self.addEventListener("activate", (event) =>
+    event.waitUntil(
+      (async () => {
+        const live = await self.clients.matchAll({
+            includeUncontrolled: true,
+            type: "all",
+          }),
+          keep = new Set([CACHE]);
+        let unknown = false;
+        for (const client of live) {
+          const saved = await readPin(client.id);
+          if (saved) keep.add(saved);
+          else if (GAME_SW.context(new URL(client.url))) unknown = true;
+        }
+        if (!unknown) {
+          const names = await caches.keys(),
+            previous = names
+              .filter((name) => owned(name) && !keep.has(name))
+              .at(-1);
+          if (previous) keep.add(previous);
+          for (const name of names)
+            if (owned(name) && !keep.has(name)) await caches.delete(name);
+        }
+        const pins = await caches.open(PINS),
+          ids = new Set(live.map((client) => client.id));
+        for (const request of await pins.keys())
+          if (
+            !ids.has(
+              decodeURIComponent(
+                new URL(request.url).pathname.split("/").at(-1),
+              ),
+            )
+          )
+            await pins.delete(request);
+        await self.clients.claim();
+        for (const client of live)
+          if (GAME_SW.context(new URL(client.url)))
+            client.postMessage({ type: "GAME_UPDATE_READY", cache: CACHE });
+      })(),
+    ),
+  );
+  self.addEventListener("fetch", (event) => {
+    const u = new URL(event.request.url);
+    if (
+      event.request.method !== "GET" ||
       u.origin !== self.location.origin ||
-      !(u.pathname.startsWith("/Game/play/darkforged/") || u.pathname.startsWith("/Game/_shared/") || u.pathname.startsWith("/Game/__local__/")) ||
-      (e.request.headers.has("range") && !/\.(?:mp3|ogg|wav|webm)$/.test(u.pathname)) ||
+      !GAME_SW.request(u) ||
+      (event.request.headers.has("range") &&
+        !/\.(?:mp3|ogg|wav|webm)$/.test(u.pathname)) ||
       u.pathname.endsWith(".mp4")
     )
       return;
-    e.respondWith(
+    event.respondWith(
       (async () => {
-        const cache = await caches.open(CACHE),
-          manifest = await manifestFor(CACHE),
-          hit = manifest
-            ? await OFFLINE_ASSETS.match(e.request, manifest, cache)
-            : await cache.match(e.request, { ignoreSearch: true });
+        const navigation = event.request.mode === "navigate";
+        const saved = navigation ? null : await readPin(event.clientId);
+        const name = owned(saved) ? saved : CACHE,
+          cache = await caches.open(name);
+        const manifest = await manifestFor(name);
+        // A navigated document and all its module/worker requests use one release.
+        if (event.resultingClientId) await pin(event.resultingClientId, name);
+        const navigable = (response) =>
+          navigation && response?.redirected
+            ? new Response(response.body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+              })
+            : response;
+        const hit = manifest
+          ? await OFFLINE_ASSETS.match(event.request, manifest, cache)
+          : await cache.match(event.request, { ignoreSearch: true });
         if (hit)
-          return e.request.headers.has("range")
-            ? OFFLINE_ASSETS.respond(hit, e.request)
-            : e.request.mode === "navigate" && hit.redirected
-              ? new Response(hit.body, {
-                  status: hit.status,
-                  statusText: hit.statusText,
-                  headers: hit.headers,
-                })
-              : hit;
-        const response = await fetch(e.request);
+          return event.request.headers.has("range")
+            ? OFFLINE_ASSETS.respond(hit, event.request)
+            : navigable(hit);
+        const response = await fetch(event.request);
         if (response.ok) {
           if (manifest)
-            await OFFLINE_ASSETS.put(e.request, response.clone(), manifest, cache, {
-              optional: true,
-            });
-          else await cache.put(e.request, response.clone()).catch(() => {});
+            await OFFLINE_ASSETS.put(
+              event.request,
+              response.clone(),
+              manifest,
+              cache,
+              { optional: true },
+            );
+          else await cache.put(event.request, response.clone());
         }
-        return response;
+        return navigable(response);
       })(),
     );
   });

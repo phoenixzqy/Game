@@ -1,41 +1,7 @@
 // games/darkforged/singleplayer/transport.ts
 import { i18n } from "./i18n.js";
 
-// games/darkforged/singleplayer/foreground.ts
-function watchForeground(doc, win, changed) {
-  let focused = doc.hasFocus(),
-    shown = true,
-    previous;
-  const publish = () => {
-    const active = shown && focused && !doc.hidden;
-    if (active !== previous) {
-      previous = active;
-      changed(active);
-    }
-  };
-  win.addEventListener("blur", () => {
-    focused = false;
-    publish();
-  });
-  win.addEventListener("focus", () => {
-    focused = true;
-    publish();
-  });
-  doc.addEventListener("visibilitychange", () => {
-    focused = doc.hasFocus();
-    publish();
-  });
-  win.addEventListener("pagehide", () => {
-    shown = false;
-    publish();
-  });
-  win.addEventListener("pageshow", () => {
-    shown = true;
-    focused = doc.hasFocus();
-    publish();
-  });
-  publish();
-}
+import { watchForeground } from "/Game/site-assets/game-preferences.mjs";
 
 // games/darkforged/singleplayer/transport.ts
 var worker = new Worker(new URL("./worker.js", import.meta.url), {

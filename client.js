@@ -971,99 +971,16 @@ function resolveArmourAppearance(item, looks) {
   return nativeArmourLooks[nativeArmourTex(item)] ?? looks.armour[item?.Image];
 }
 
-// The /api route bypasses installed game caches, so latest means the published version.
+import { mountPausePreference } from "/Game/site-assets/game-preferences.mjs";
+import { installGameUpdates, mountUpdateStatus, applyGameUpdate } from "/Game/site-assets/game-update.mjs";
 function mountGameUpdateStatus(root) {
-  const box = root.querySelector("#game-version"),
-    button = root.querySelector("#force-update");
-  if (!box || !button) return;
-  const locale = i18n.locale.startsWith("zh") ? "zh" : i18n.locale.startsWith("es") ? "es" : "en";
-  const labels = {
-    zh: {
-      current: "当前版本",
-      latest: "最新版本",
-      checking: "正在检查…",
-      update: "更新到最新版",
-      available: "发现新版本",
-      maintenance: "有维护更新",
-      currentStatus: "已是最新版",
-      unavailable: "暂时无法检查，可联网后重试更新",
-      keep: "更新保留本机角色与进度",
-    },
-    en: {
-      current: "Current version",
-      latest: "Latest version",
-      checking: "Checking…",
-      update: "Update to latest version",
-      available: "New version available",
-      maintenance: "Maintenance update available",
-      currentStatus: "Up to date",
-      unavailable: "Unable to check. Retry when online.",
-      keep: "Updates keep local characters and progress",
-    },
-    es: {
-      current: "Versión actual",
-      latest: "Última versión",
-      checking: "Comprobando…",
-      update: "Actualizar a la última versión",
-      available: "Nueva versión disponible",
-      maintenance: "Actualización de mantenimiento disponible",
-      currentStatus: "Ya está actualizado",
-      unavailable: "No se pudo comprobar. Reintenta con conexión.",
-      keep: "La actualización conserva los personajes y el progreso local",
-    },
-  }[locale];
-  const current = document.querySelector('meta[name="dream-version"]')?.content || "—",
-    build = document.querySelector('meta[name="dream-build"]')?.content;
-  const line = document.createElement("div"),
-    latest = document.createElement("strong"),
-    status = document.createElement("div");
-  line.textContent = labels.current + "：" + current;
-  latest.textContent = labels.latest + "：" + labels.checking;
-  status.textContent = labels.keep;
-  status.setAttribute("role", "status");
-  box.replaceChildren(line, latest, status);
-  box.style.cssText = "line-height:1.6;white-space:normal";
-  button.textContent = labels.update;
-  button.style.cssText =
-    "background:#73541f;color:#fff0c1;border:1px solid #d8b364;font-weight:700;min-height:40px";
-  button.title = labels.keep;
-  const game = location.pathname.startsWith("/Game/play/classic-hell/")
-      ? "classic-hell"
-      : location.pathname.startsWith("/Game/play/darkforged/")
-        ? "darkforged"
-        : "classic",
-    controller = new AbortController(),
-    timer = setTimeout(() => controller.abort(), 5000);
-  fetch("/Game/api/game-version?game=" + encodeURIComponent(game), {
-    cache: "no-store",
-    credentials: "omit",
-    signal: controller.signal,
-  })
-    .then(async (response) => {
-      if (!response.ok) throw Error("version");
-      const info = await response.json();
-      if (info.game !== game || typeof info.version !== "string" || typeof info.build !== "string")
-        throw Error("version");
-      if (!box.isConnected) return;
-      latest.textContent = labels.latest + "：" + info.version;
-      const sameVersion = current.replace(/^v/i, "") === info.version.replace(/^v/i, "");
-      status.textContent =
-        build === info.build
-          ? labels.currentStatus
-          : sameVersion
-            ? labels.maintenance
-            : labels.available;
-      status.style.color = build === info.build ? "#b5c4a0" : "#ffd77b";
-      button.dataset.updateAvailable = String(build !== info.build);
-    })
-    .catch(() => {
-      if (box.isConnected) {
-        latest.textContent = labels.latest + "：—";
-        status.textContent = labels.unavailable;
-      }
-    })
-    .finally(() => clearTimeout(timer));
+  mountUpdateStatus(root, i18n.locale);
+  mountPausePreference(root, i18n.locale, error => say(i18n.t("system.saveError", { error: error.message })));
 }
+i18n.ready.then(() => installGameUpdates(i18n.locale, {
+  save: async () => { await accept(await api("save", {})); },
+  error: (error, saved) => say(saved ? error.message : i18n.t("system.updateSaveError", { error: error.message })),
+}));
 
 import {
   createPlayedResourceWarmer,
@@ -2457,7 +2374,7 @@ async function leaveCharacter() {
 function systemMenu() {
   cancelControl();
   const w = makeWindow("system", i18n.t("system.title"), "system-window");
-  w.body.innerHTML = `${gameAccountMarkup()}<p id="game-version"></p><a class="site-system-guide" href="${esc(i18n.path("/Game/guide/"))}" target="_blank" rel="noopener">${esc(i18n.t("site.game.guide"))}</a><button id="save-game">${esc(cloudMessages(i18n.locale).saveLocal)}</button><button id="force-update">${esc(i18n.t("system.update"))}</button><button id="cloud-account">${esc(gistCloudMessages(i18n.locale).title)}</button><button id="select-character">${esc(i18n.t("system.characters"))}</button><button id="offline-download">${esc(i18n.t("system.offline"))}</button><p id="offline-progress" role="status"></p><small>${esc(i18n.t("system.background"))}</small>`;
+  w.body.innerHTML = `${gameAccountMarkup()}<p id="game-version"></p><a class="site-system-guide" href="${esc(i18n.path("/Game/guide/"))}" target="_blank" rel="noopener">${esc(i18n.t("site.game.guide"))}</a><button id="save-game">${esc(cloudMessages(i18n.locale).saveLocal)}</button><button id="force-update">${esc(i18n.t("system.update"))}</button><button id="cloud-account">${esc(gistCloudMessages(i18n.locale).title)}</button><button id="select-character">${esc(i18n.t("system.characters"))}</button><button id="offline-download">${esc(i18n.t("system.offline"))}</button><p id="offline-progress" role="status"></p><small data-focus-preference-hint>${esc(i18n.t("system.background"))}</small>`;
   audio().mount(w.body);
   w.body.prepend(
     i18n.picker({
@@ -2498,14 +2415,13 @@ function systemMenu() {
   $("#force-update").onclick = async () => {
     const b = $("#force-update");
     b.disabled = true;
+    let saved = false;
     try {
       await accept(await api("save", {}));
-      const url = new URL("./update", document.baseURI);
-      url.searchParams.set("lang", i18n.locale);
-      if (i18n.preview) url.searchParams.set("previewLanguage", "1");
-      location.assign(url.href);
+      saved = true;
+      await applyGameUpdate(i18n.locale);
     } catch (e) {
-      say(i18n.t("system.updateSaveError", { error: e.message }));
+      say(saved ? e.message : i18n.t("system.updateSaveError", { error: e.message }));
       b.disabled = false;
     }
   };
@@ -546948,16 +546864,6 @@ function drawBagTicketGround(p) {
     dy: -16,
   };
 }
-
-document.addEventListener("backmir-update-request", async (event) => {
-  event.preventDefault();
-  try {
-    await accept(await api("save", {}));
-    location.assign("/Game/update.html?lang=" + encodeURIComponent(i18n.locale));
-  } catch (e) {
-    say(i18n.t("system.updateSaveError", { error: e.message }));
-  }
-});
 
 window.backmirEmbed?.attach(async (type) => {
   cancelControl();

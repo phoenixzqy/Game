@@ -5804,6 +5804,7 @@ async function mountMobile(b) {
     worldPointer = null;
   };
   const inForeground = () => document.documentElement.dataset.gameForeground !== "false";
+  const backgroundBlocked = () => document.hidden && document.documentElement.dataset.pauseOnFocusLoss !== "false";
   function autoResume() {
     if (
       inForeground() &&
@@ -5858,7 +5859,7 @@ async function mountMobile(b) {
     return queuePause();
   }
   async function resume() {
-    if (portrait || document.hidden || !inForeground() || refreshing) return;
+    if (portrait || backgroundBlocked() || !inForeground() || refreshing) return;
     refreshing = true;
     const ticket = pauseGeneration;
     const button2 = pause.querySelector("button");
@@ -5867,14 +5868,14 @@ async function mountMobile(b) {
       controller.clear();
       await pauseChain;
       await b.refresh();
-      if (ticket !== pauseGeneration || portrait || document.hidden || !inForeground()) return;
+      if (ticket !== pauseGeneration || portrait || backgroundBlocked() || !inForeground()) return;
       controller.reasons.delete("error");
       controller.reasons.delete("resume");
       controller.reasons.delete("hidden");
       controller.reasons.delete("blur");
       controller.reasons.delete("background");
       await b.pause(false);
-      if (ticket !== pauseGeneration || portrait || document.hidden || !inForeground()) {
+      if (ticket !== pauseGeneration || portrait || backgroundBlocked() || !inForeground()) {
         await queuePause();
         return;
       }
@@ -5887,7 +5888,7 @@ async function mountMobile(b) {
       updatePause();
     } finally {
       refreshing = false;
-      dom.property(button2, "disabled", portrait || document.hidden || !inForeground());
+      dom.property(button2, "disabled", portrait || backgroundBlocked() || !inForeground());
       autoResume();
     }
   }
