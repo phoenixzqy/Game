@@ -539106,7 +539106,7 @@ function autoBattleAllowsLoot(config, actor, defs, chestId, qualityPoints) {
   if (actor.gold > 0) return config.gold;
   const item = actor.item,
     def = item && defs.get(item.id);
-  if (!def || def.Type === "Book" || !config.ids.includes(item.id) || !config.types.includes(def.Type))
+  if (!def || !config.ids.includes(item.id) || !config.types.includes(def.Type))
     return false;
   // Rarity, level and attributes describe equipment, never supplies/materials.
   if (!itemSlots(def)?.length) return true;
