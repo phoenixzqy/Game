@@ -1310,371 +1310,7 @@ var mobileNovice = (locale, key, params = {}) => {
 
 // singleplayer/mobile/v2/text.js
 
-var text3 = {
-  "zh-CN": {
-    "shortcutSettings": "快捷栏设置",
-    "quickItems": "物品 · 6槽",
-    "quickSkills": "技能 · 8槽",
-    "currentBinding": "当前绑定",
-    "unbound": "未绑定",
-    "outOfStock": "暂无库存",
-    "quantityCount": "库存 ×{{n}}",
-    "clearBinding": "清空此槽",
-    "replaceItemHint": "点下方物品替换此槽；战斗中请用固定设置按钮编辑。左右滑动可查看全部6槽。",
-    "replaceSkillHint": "点下方技能绑定此键。第1页为1–4，第2页为5–8；战斗中单击已绑定技能照常施法。",
-    "noQuickItems": "背包中没有可快捷绑定的物品。支持药品、卷轴、技能书、扩包券和藏宝图；材料与装备不能绑定。",
-    "noQuickSkills": "尚未学会可主动使用的技能。被动或暂不可施放的技能不占快捷键。",
-    "quickBarHint": "物品快捷栏 · 左右滑动查看6槽 · 设置按钮编辑",
-    "chooseSkill": "选择技能",
-    "chooseSlotHint": "选择目标槽，再点“确认绑定”：{{name}}",
-    "assignSelected": "确认绑定",
-    "itemCannotBind": "此物品不能绑定快捷栏；材料与装备请在原版背包中使用。",
-    "skillCannotBind": "被动或暂不可施放的技能不能放到战斗快捷键。",
-    "bindingChanged": "物品或技能已变化，请重新选择。",
-    "roleShort": "角色",
-    "menuShort": "菜单",
-    "holdForce": "按住原地",
-    "switchTarget": "换目标",
-    "pageLabel": "技能页",
-    "tabRole": "角色",
-    "tabBag": "背包",
-    "tabSkills": "技能",
-    "tabQuests": "任务",
-    "tabMap": "地图",
-    "all": "全部",
-    "equipment": "装备",
-    "potion": "药品",
-    "material": "材料",
-    "quest": "任务",
-    "sort": "整理",
-    "equip": "装备",
-    "useItem": "使用",
-    "learn": "学习",
-    "open": "打开",
-    "compare": "对比身上",
-    "quick": "快捷栏",
-    "more": "更多",
-    "compareTitle": "对比",
-    "wearing": "身上",
-    "inBag": "背包中",
-    "equipReplace": "装备（替换身上）",
-    "chooseSide": "对比哪一边",
-    "left": "左",
-    "right": "右",
-    "nothingWorn": "这个位置目前没有装备。",
-    "unequip": "卸下",
-    "toggleMount": "上马 / 下马",
-    "fullPanel": "完整面板",
-    "keyStats": "主要属性",
-    "allStats": "全部属性",
-    "noItem": "点一个物品查看详情。",
-    "noSkill": "点一个技能查看说明。",
-    "assignTo": "放到哪个技能键：点一个位置",
-    "page1": "第1页",
-    "page2": "第2页",
-    "onKey": "在{{key}}号键",
-    "notPlaced": "未放置",
-    "passiveTag": "被动",
-    "takeOff": "取下",
-    "skillType_toggle": "开关",
-    "skillType_armed": "开关",
-    "skillType_target": "目标",
-    "skillType_ground": "地面",
-    "skillType_direction": "方向",
-    "skillType_self": "自身",
-    "skillType_pet": "宠物",
-    "skillType_passive": "被动",
-    "skillType_unavailable": "不可用",
-    "cancelAim": "拖回这里取消",
-    "buyCount": "购买 {{n}} 个",
-    "total": "合计 {{gold}} 金币",
-    "max": "最多",
-    "price": "单价",
-    "settings": "操作设置",
-    "hand": "左右手",
-    "handRight": "右手攻击",
-    "handLeft": "左手攻击",
-    "size": "按钮大小",
-    "small": "小",
-    "medium": "中",
-    "large": "大",
-    "opacity": "界面透明度",
-    "turn": "竖握时画面方向",
-    "turnRight": "顶部朝右",
-    "turnLeft": "顶部朝左",
-    "vibrate": "受击震动",
-    "on": "开",
-    "off": "关",
-    "uiVersion": "界面版本",
-    "uiNew": "使用新版界面",
-    "uiOld": "旧版",
-    "uiOldSwitch": "切换到旧版界面",
-    "switchPC": "切换为电脑操作",
-    "fullscreen": "全屏",
-    "leaderboard": "排行榜",
-    "activity": "活动",
-    "pet": "宠物",
-    "mount": "坐骑",
-    "forge": "锻造",
-    "assist": "辅助",
-    "system": "存档与系统",
-    "saves": "存档 / 云存档",
-    "bagUsed": "{{used}}/{{total}}",
-    "goldLabel": "{{gold}} 金币",
-    "fullscreenHint": "点这里回到全屏横屏",
-    "shopHint": "点一个商品查看详情和购买。",
-    "chooseQuick": "选择放到 {{n}} 号快捷栏的物品",
-    "rotateNotice": "画面已横向显示：把手机横过来即可。",
-    "holdForceTip": "按住攻击键可原地攻击，不追击。",
-    "showTips": "提示 ▾",
-    "hideTips": "收起提示 ▴",
-    "setAfter": "装备后：{{name}} {{count}}/{{total}}",
-    "setOn": "{{n}}件效果将激活",
-    "setOff": "{{n}}件效果将失去"
-  },
-  "en": {
-    "shortcutSettings": "Shortcut settings",
-    "quickItems": "Items · 6 slots",
-    "quickSkills": "Skills · 8 slots",
-    "currentBinding": "Current binding",
-    "unbound": "Unbound",
-    "outOfStock": "Out of stock",
-    "quantityCount": "In bag ×{{n}}",
-    "clearBinding": "Clear slot",
-    "replaceItemHint": "Tap an item below to replace this slot. Use the settings button to edit; swipe the battle item bar for all 6 slots.",
-    "replaceSkillHint": "Tap a skill below to assign it. Page 1 has keys 1–4; page 2 has 5–8. Tapping a bound battle skill still casts it.",
-    "noQuickItems": "No bindable items in your bag. Potions, scrolls, skill books, bag expansions and treasure maps are supported; materials and gear are not.",
-    "noQuickSkills": "No active skills learned yet. Passive and currently unsupported skills do not occupy battle keys.",
-    "quickBarHint": "Items · Swipe for 6 slots · Settings to edit",
-    "chooseSkill": "Choose skill",
-    "chooseSlotHint": "Select a destination, then Confirm binding: {{name}}",
-    "assignSelected": "Confirm binding",
-    "itemCannotBind": "This item cannot be bound. Manage materials and gear in the original bag.",
-    "skillCannotBind": "Passive and unsupported skills cannot be placed on battle keys.",
-    "bindingChanged": "The item or skill changed. Please choose again.",
-    "roleShort": "Hero",
-    "menuShort": "Menu",
-    "holdForce": "Hold: in place",
-    "switchTarget": "Target",
-    "pageLabel": "Skill page",
-    "tabRole": "Character",
-    "tabBag": "Bag",
-    "tabSkills": "Skills",
-    "tabQuests": "Quests",
-    "tabMap": "Map",
-    "all": "All",
-    "equipment": "Gear",
-    "potion": "Potions",
-    "material": "Materials",
-    "quest": "Quest",
-    "sort": "Sort",
-    "equip": "Equip",
-    "useItem": "Use",
-    "learn": "Learn",
-    "open": "Open",
-    "compare": "Compare",
-    "quick": "Quick slot",
-    "more": "More",
-    "compareTitle": "Compare",
-    "wearing": "Wearing",
-    "inBag": "In bag",
-    "equipReplace": "Equip (replace)",
-    "chooseSide": "Compare with",
-    "left": "Left",
-    "right": "Right",
-    "nothingWorn": "Nothing is equipped in this slot.",
-    "unequip": "Unequip",
-    "toggleMount": "Mount / Dismount",
-    "fullPanel": "Full panel",
-    "keyStats": "Key stats",
-    "allStats": "All stats",
-    "noItem": "Tap an item to see its details.",
-    "noSkill": "Tap a skill to see what it does.",
-    "assignTo": "Tap a button position for this skill",
-    "page1": "Page 1",
-    "page2": "Page 2",
-    "onKey": "On button {{key}}",
-    "notPlaced": "Not placed",
-    "passiveTag": "Passive",
-    "takeOff": "Remove",
-    "skillType_toggle": "On/off",
-    "skillType_armed": "On/off",
-    "skillType_target": "Target",
-    "skillType_ground": "Ground",
-    "skillType_direction": "Direction",
-    "skillType_self": "Self",
-    "skillType_pet": "Pet",
-    "skillType_passive": "Passive",
-    "skillType_unavailable": "Unavailable",
-    "cancelAim": "Drag back here to cancel",
-    "buyCount": "Buy {{n}}",
-    "total": "Total {{gold}} gold",
-    "max": "Max",
-    "price": "Price",
-    "settings": "Control settings",
-    "hand": "Hands",
-    "handRight": "Attack on the right",
-    "handLeft": "Attack on the left",
-    "size": "Button size",
-    "small": "S",
-    "medium": "M",
-    "large": "L",
-    "opacity": "HUD opacity",
-    "turn": "When held upright",
-    "turnRight": "Top to the right",
-    "turnLeft": "Top to the left",
-    "vibrate": "Vibrate when hit",
-    "on": "On",
-    "off": "Off",
-    "uiVersion": "Interface",
-    "uiNew": "Use new interface",
-    "uiOld": "Classic mobile",
-    "uiOldSwitch": "Use the previous mobile interface",
-    "switchPC": "Switch to PC controls",
-    "fullscreen": "Fullscreen",
-    "leaderboard": "Ranking",
-    "activity": "Events",
-    "pet": "Pet",
-    "mount": "Mount",
-    "forge": "Forge",
-    "assist": "Assist",
-    "system": "Saves & system",
-    "saves": "Saves / Cloud",
-    "bagUsed": "{{used}}/{{total}}",
-    "goldLabel": "{{gold}} gold",
-    "fullscreenHint": "Tap to return to fullscreen landscape",
-    "shopHint": "Tap an item to see details and buy.",
-    "chooseQuick": "Choose an item for quick slot {{n}}",
-    "rotateNotice": "The game is shown sideways: turn your phone.",
-    "holdForceTip": "Hold the attack button to attack in place without chasing.",
-    "showTips": "Hints ▾",
-    "hideTips": "Hide hints ▴",
-    "setAfter": "After equipping: {{name}} {{count}}/{{total}}",
-    "setOn": "{{n}}-piece bonus switches on",
-    "setOff": "{{n}}-piece bonus switches off"
-  },
-  "es": {
-    "shortcutSettings": "Ajustar accesos rápidos",
-    "quickItems": "Objetos · 6 casillas",
-    "quickSkills": "Habilidades · 8 casillas",
-    "currentBinding": "Vínculo actual",
-    "unbound": "Sin asignar",
-    "outOfStock": "Sin existencias",
-    "quantityCount": "En mochila ×{{n}}",
-    "clearBinding": "Vaciar casilla",
-    "replaceItemHint": "Toca un objeto para reemplazar esta casilla. Usa el botón de ajustes para editar; desliza la barra de objetos para ver las 6 casillas.",
-    "replaceSkillHint": "Toca una habilidad para asignarla. La página 1 usa 1–4 y la 2 usa 5–8. Tocar una habilidad asignada sigue lanzándola.",
-    "noQuickItems": "No hay objetos compatibles. Se admiten pociones, pergaminos, libros, ampliaciones y mapas del tesoro; no materiales ni equipo.",
-    "noQuickSkills": "Aún no conoces habilidades activas. Las pasivas o no disponibles no ocupan accesos de combate.",
-    "quickBarHint": "Objetos · Desliza para ver 6 · Ajustes para editar",
-    "chooseSkill": "Elegir habilidad",
-    "chooseSlotHint": "Elige una casilla y confirma: {{name}}",
-    "assignSelected": "Confirmar vínculo",
-    "itemCannotBind": "Este objeto no puede asignarse. Gestiona materiales y equipo en la mochila original.",
-    "skillCannotBind": "Las habilidades pasivas o no disponibles no se asignan a botones de combate.",
-    "bindingChanged": "El objeto o habilidad cambió. Elige de nuevo.",
-    "roleShort": "Héroe",
-    "menuShort": "Menú",
-    "holdForce": "Mantén: sin moverte",
-    "switchTarget": "Objetivo",
-    "pageLabel": "Página de habilidades",
-    "tabRole": "Personaje",
-    "tabBag": "Mochila",
-    "tabSkills": "Habilidades",
-    "tabQuests": "Misiones",
-    "tabMap": "Mapa",
-    "all": "Todo",
-    "equipment": "Equipo",
-    "potion": "Pociones",
-    "material": "Materiales",
-    "quest": "Misión",
-    "sort": "Ordenar",
-    "equip": "Equipar",
-    "useItem": "Usar",
-    "learn": "Aprender",
-    "open": "Abrir",
-    "compare": "Comparar",
-    "quick": "Acceso rápido",
-    "more": "Más",
-    "compareTitle": "Comparar",
-    "wearing": "Equipado",
-    "inBag": "En la mochila",
-    "equipReplace": "Equipar (reemplazar)",
-    "chooseSide": "Comparar con",
-    "left": "Izq.",
-    "right": "Der.",
-    "nothingWorn": "No hay nada equipado en esta ranura.",
-    "unequip": "Quitar",
-    "toggleMount": "Montar / Desmontar",
-    "fullPanel": "Panel completo",
-    "keyStats": "Atributos clave",
-    "allStats": "Todos los atributos",
-    "noItem": "Toca un objeto para ver sus detalles.",
-    "noSkill": "Toca una habilidad para ver qué hace.",
-    "assignTo": "Toca una posición para esta habilidad",
-    "page1": "Página 1",
-    "page2": "Página 2",
-    "onKey": "En el botón {{key}}",
-    "notPlaced": "Sin colocar",
-    "passiveTag": "Pasiva",
-    "takeOff": "Quitar",
-    "skillType_toggle": "Activable",
-    "skillType_armed": "Activable",
-    "skillType_target": "Objetivo",
-    "skillType_ground": "Suelo",
-    "skillType_direction": "Dirección",
-    "skillType_self": "Propia",
-    "skillType_pet": "Mascota",
-    "skillType_passive": "Pasiva",
-    "skillType_unavailable": "No disponible",
-    "cancelAim": "Arrastra aquí para cancelar",
-    "buyCount": "Comprar {{n}}",
-    "total": "Total {{gold}} oro",
-    "max": "Máx.",
-    "price": "Precio",
-    "settings": "Controles",
-    "hand": "Manos",
-    "handRight": "Atacar a la derecha",
-    "handLeft": "Atacar a la izquierda",
-    "size": "Tamaño de botones",
-    "small": "P",
-    "medium": "M",
-    "large": "G",
-    "opacity": "Opacidad de la interfaz",
-    "turn": "En vertical",
-    "turnRight": "Arriba a la derecha",
-    "turnLeft": "Arriba a la izquierda",
-    "vibrate": "Vibrar al recibir golpes",
-    "on": "Sí",
-    "off": "No",
-    "uiVersion": "Interfaz",
-    "uiNew": "Usar la interfaz nueva",
-    "uiOld": "Móvil anterior",
-    "uiOldSwitch": "Usar la interfaz móvil anterior",
-    "switchPC": "Cambiar a controles de PC",
-    "fullscreen": "Pantalla completa",
-    "leaderboard": "Clasificación",
-    "activity": "Eventos",
-    "pet": "Mascota",
-    "mount": "Montura",
-    "forge": "Forja",
-    "assist": "Asistente",
-    "system": "Partidas y sistema",
-    "saves": "Partidas / Nube",
-    "bagUsed": "{{used}}/{{total}}",
-    "goldLabel": "{{gold}} oro",
-    "fullscreenHint": "Toca para volver a pantalla completa",
-    "shopHint": "Toca un artículo para ver detalles y comprar.",
-    "chooseQuick": "Elige un objeto para el acceso rápido {{n}}",
-    "rotateNotice": "El juego se muestra de lado: gira el teléfono.",
-    "holdForceTip": "Mantén pulsado el botón de ataque para atacar sin moverte.",
-    "showTips": "Consejos ▾",
-    "hideTips": "Ocultar consejos ▴",
-    "setAfter": "Al equipar: {{name}} {{count}}/{{total}}",
-    "setOn": "se activa la bonificación de {{n}} piezas",
-    "setOff": "se pierde la bonificación de {{n}} piezas"
-  }
-}
+var text3 = {"zh-CN":{"shortcutSettings":"快捷栏设置","quickItems":"物品 · 6槽","quickSkills":"技能 · 8槽","currentBinding":"当前绑定","unbound":"未绑定","outOfStock":"暂无库存","quantityCount":"库存 ×{{n}}","clearBinding":"清空此槽","replaceItemHint":"点下方物品替换此槽；战斗中请用固定设置按钮编辑。左右滑动可查看全部6槽。","replaceSkillHint":"点下方技能绑定此键。第1页为1–4，第2页为5–8；战斗中单击已绑定技能照常施法。","noQuickItems":"背包中没有可快捷绑定的物品。支持药品、卷轴、技能书、扩包券和藏宝图；材料与装备不能绑定。","noQuickSkills":"尚未学会可主动使用的技能。被动或暂不可施放的技能不占快捷键。","quickBarHint":"物品快捷栏 · 左右滑动查看6槽 · 设置按钮编辑","chooseSkill":"选择技能","chooseSlotHint":"选择目标槽，再点“确认绑定”：{{name}}","assignSelected":"确认绑定","itemCannotBind":"此物品不能绑定快捷栏；材料与装备请在原版背包中使用。","skillCannotBind":"被动或暂不可施放的技能不能放到战斗快捷键。","bindingChanged":"物品或技能已变化，请重新选择。","roleShort":"角色","menuShort":"菜单","holdForce":"按住原地","switchTarget":"换目标","pageLabel":"技能页","tabRole":"角色","tabBag":"背包","tabSkills":"技能","tabQuests":"任务","tabMap":"地图","all":"全部","equipment":"装备","potion":"药品","material":"材料","quest":"任务","sort":"整理","equip":"装备","useItem":"使用","learn":"学习","open":"打开","compare":"对比身上","quick":"快捷栏","more":"更多","compareTitle":"对比","wearing":"身上","inBag":"背包中","equipReplace":"装备（替换身上）","chooseSide":"对比哪一边","left":"左","right":"右","nothingWorn":"这个位置目前没有装备。","unequip":"卸下","toggleMount":"上马 / 下马","fullPanel":"完整面板","keyStats":"主要属性","allStats":"全部属性","noItem":"点一个物品查看详情。","noSkill":"点一个技能查看说明。","assignTo":"放到哪个技能键：点一个位置","page1":"第1页","page2":"第2页","onKey":"在{{key}}号键","notPlaced":"未放置","passiveTag":"被动","takeOff":"取下","skillType_toggle":"开关","skillType_armed":"开关","skillType_target":"目标","skillType_ground":"地面","skillType_direction":"方向","skillType_self":"自身","skillType_pet":"宠物","skillType_passive":"被动","skillType_unavailable":"不可用","cancelAim":"拖回这里取消","buyCount":"购买 {{n}} 个","total":"合计 {{gold}} 金币","max":"最多","price":"单价","settings":"操作设置","hand":"左右手","handRight":"右手攻击","handLeft":"左手攻击","size":"按钮大小","small":"小","medium":"中","large":"大","opacity":"界面透明度","turn":"竖握时画面方向","turnRight":"顶部朝右","turnLeft":"顶部朝左","vibrate":"受击震动","on":"开","off":"关","uiVersion":"界面版本","uiNew":"使用新版界面","uiOld":"旧版","uiOldSwitch":"切换到旧版界面","switchPC":"切换为电脑操作","fullscreen":"全屏","activity":"活动","pet":"宠物","mount":"坐骑","forge":"锻造","assist":"辅助","system":"存档与系统","saves":"存档 / 云存档","bagUsed":"{{used}}/{{total}}","goldLabel":"{{gold}} 金币","fullscreenHint":"点这里回到全屏横屏","shopHint":"点一个商品查看详情和购买。","chooseQuick":"选择放到 {{n}} 号快捷栏的物品","rotateNotice":"画面已横向显示：把手机横过来即可。","holdForceTip":"按住攻击键可原地攻击，不追击。","showTips":"提示 ▾","hideTips":"收起提示 ▴","setAfter":"装备后：{{name}} {{count}}/{{total}}","setOn":"{{n}}件效果将激活","setOff":"{{n}}件效果将失去"},"en":{"shortcutSettings":"Shortcut settings","quickItems":"Items · 6 slots","quickSkills":"Skills · 8 slots","currentBinding":"Current binding","unbound":"Unbound","outOfStock":"Out of stock","quantityCount":"In bag ×{{n}}","clearBinding":"Clear slot","replaceItemHint":"Tap an item below to replace this slot. Use the settings button to edit; swipe the battle item bar for all 6 slots.","replaceSkillHint":"Tap a skill below to assign it. Page 1 has keys 1–4; page 2 has 5–8. Tapping a bound battle skill still casts it.","noQuickItems":"No bindable items in your bag. Potions, scrolls, skill books, bag expansions and treasure maps are supported; materials and gear are not.","noQuickSkills":"No active skills learned yet. Passive and currently unsupported skills do not occupy battle keys.","quickBarHint":"Items · Swipe for 6 slots · Settings to edit","chooseSkill":"Choose skill","chooseSlotHint":"Select a destination, then Confirm binding: {{name}}","assignSelected":"Confirm binding","itemCannotBind":"This item cannot be bound. Manage materials and gear in the original bag.","skillCannotBind":"Passive and unsupported skills cannot be placed on battle keys.","bindingChanged":"The item or skill changed. Please choose again.","roleShort":"Hero","menuShort":"Menu","holdForce":"Hold: in place","switchTarget":"Target","pageLabel":"Skill page","tabRole":"Character","tabBag":"Bag","tabSkills":"Skills","tabQuests":"Quests","tabMap":"Map","all":"All","equipment":"Gear","potion":"Potions","material":"Materials","quest":"Quest","sort":"Sort","equip":"Equip","useItem":"Use","learn":"Learn","open":"Open","compare":"Compare","quick":"Quick slot","more":"More","compareTitle":"Compare","wearing":"Wearing","inBag":"In bag","equipReplace":"Equip (replace)","chooseSide":"Compare with","left":"Left","right":"Right","nothingWorn":"Nothing is equipped in this slot.","unequip":"Unequip","toggleMount":"Mount / Dismount","fullPanel":"Full panel","keyStats":"Key stats","allStats":"All stats","noItem":"Tap an item to see its details.","noSkill":"Tap a skill to see what it does.","assignTo":"Tap a button position for this skill","page1":"Page 1","page2":"Page 2","onKey":"On button {{key}}","notPlaced":"Not placed","passiveTag":"Passive","takeOff":"Remove","skillType_toggle":"On/off","skillType_armed":"On/off","skillType_target":"Target","skillType_ground":"Ground","skillType_direction":"Direction","skillType_self":"Self","skillType_pet":"Pet","skillType_passive":"Passive","skillType_unavailable":"Unavailable","cancelAim":"Drag back here to cancel","buyCount":"Buy {{n}}","total":"Total {{gold}} gold","max":"Max","price":"Price","settings":"Control settings","hand":"Hands","handRight":"Attack on the right","handLeft":"Attack on the left","size":"Button size","small":"S","medium":"M","large":"L","opacity":"HUD opacity","turn":"When held upright","turnRight":"Top to the right","turnLeft":"Top to the left","vibrate":"Vibrate when hit","on":"On","off":"Off","uiVersion":"Interface","uiNew":"Use new interface","uiOld":"Classic mobile","uiOldSwitch":"Use the previous mobile interface","switchPC":"Switch to PC controls","fullscreen":"Fullscreen","activity":"Events","pet":"Pet","mount":"Mount","forge":"Forge","assist":"Assist","system":"Saves & system","saves":"Saves / Cloud","bagUsed":"{{used}}/{{total}}","goldLabel":"{{gold}} gold","fullscreenHint":"Tap to return to fullscreen landscape","shopHint":"Tap an item to see details and buy.","chooseQuick":"Choose an item for quick slot {{n}}","rotateNotice":"The game is shown sideways: turn your phone.","holdForceTip":"Hold the attack button to attack in place without chasing.","showTips":"Hints ▾","hideTips":"Hide hints ▴","setAfter":"After equipping: {{name}} {{count}}/{{total}}","setOn":"{{n}}-piece bonus switches on","setOff":"{{n}}-piece bonus switches off"},"es":{"shortcutSettings":"Ajustar accesos rápidos","quickItems":"Objetos · 6 casillas","quickSkills":"Habilidades · 8 casillas","currentBinding":"Vínculo actual","unbound":"Sin asignar","outOfStock":"Sin existencias","quantityCount":"En mochila ×{{n}}","clearBinding":"Vaciar casilla","replaceItemHint":"Toca un objeto para reemplazar esta casilla. Usa el botón de ajustes para editar; desliza la barra de objetos para ver las 6 casillas.","replaceSkillHint":"Toca una habilidad para asignarla. La página 1 usa 1–4 y la 2 usa 5–8. Tocar una habilidad asignada sigue lanzándola.","noQuickItems":"No hay objetos compatibles. Se admiten pociones, pergaminos, libros, ampliaciones y mapas del tesoro; no materiales ni equipo.","noQuickSkills":"Aún no conoces habilidades activas. Las pasivas o no disponibles no ocupan accesos de combate.","quickBarHint":"Objetos · Desliza para ver 6 · Ajustes para editar","chooseSkill":"Elegir habilidad","chooseSlotHint":"Elige una casilla y confirma: {{name}}","assignSelected":"Confirmar vínculo","itemCannotBind":"Este objeto no puede asignarse. Gestiona materiales y equipo en la mochila original.","skillCannotBind":"Las habilidades pasivas o no disponibles no se asignan a botones de combate.","bindingChanged":"El objeto o habilidad cambió. Elige de nuevo.","roleShort":"Héroe","menuShort":"Menú","holdForce":"Mantén: sin moverte","switchTarget":"Objetivo","pageLabel":"Página de habilidades","tabRole":"Personaje","tabBag":"Mochila","tabSkills":"Habilidades","tabQuests":"Misiones","tabMap":"Mapa","all":"Todo","equipment":"Equipo","potion":"Pociones","material":"Materiales","quest":"Misión","sort":"Ordenar","equip":"Equipar","useItem":"Usar","learn":"Aprender","open":"Abrir","compare":"Comparar","quick":"Acceso rápido","more":"Más","compareTitle":"Comparar","wearing":"Equipado","inBag":"En la mochila","equipReplace":"Equipar (reemplazar)","chooseSide":"Comparar con","left":"Izq.","right":"Der.","nothingWorn":"No hay nada equipado en esta ranura.","unequip":"Quitar","toggleMount":"Montar / Desmontar","fullPanel":"Panel completo","keyStats":"Atributos clave","allStats":"Todos los atributos","noItem":"Toca un objeto para ver sus detalles.","noSkill":"Toca una habilidad para ver qué hace.","assignTo":"Toca una posición para esta habilidad","page1":"Página 1","page2":"Página 2","onKey":"En el botón {{key}}","notPlaced":"Sin colocar","passiveTag":"Pasiva","takeOff":"Quitar","skillType_toggle":"Activable","skillType_armed":"Activable","skillType_target":"Objetivo","skillType_ground":"Suelo","skillType_direction":"Dirección","skillType_self":"Propia","skillType_pet":"Mascota","skillType_passive":"Pasiva","skillType_unavailable":"No disponible","cancelAim":"Arrastra aquí para cancelar","buyCount":"Comprar {{n}}","total":"Total {{gold}} oro","max":"Máx.","price":"Precio","settings":"Controles","hand":"Manos","handRight":"Atacar a la derecha","handLeft":"Atacar a la izquierda","size":"Tamaño de botones","small":"P","medium":"M","large":"G","opacity":"Opacidad de la interfaz","turn":"En vertical","turnRight":"Arriba a la derecha","turnLeft":"Arriba a la izquierda","vibrate":"Vibrar al recibir golpes","on":"Sí","off":"No","uiVersion":"Interfaz","uiNew":"Usar la interfaz nueva","uiOld":"Móvil anterior","uiOldSwitch":"Usar la interfaz móvil anterior","switchPC":"Cambiar a controles de PC","fullscreen":"Pantalla completa","activity":"Eventos","pet":"Mascota","mount":"Montura","forge":"Forja","assist":"Asistente","system":"Partidas y sistema","saves":"Partidas / Nube","bagUsed":"{{used}}/{{total}}","goldLabel":"{{gold}} oro","fullscreenHint":"Toca para volver a pantalla completa","shopHint":"Toca un artículo para ver detalles y comprar.","chooseQuick":"Elige un objeto para el acceso rápido {{n}}","rotateNotice":"El juego se muestra de lado: gira el teléfono.","holdForceTip":"Mantén pulsado el botón de ataque para atacar sin moverte.","showTips":"Consejos ▾","hideTips":"Ocultar consejos ▴","setAfter":"Al equipar: {{name}} {{count}}/{{total}}","setOn":"se activa la bonificación de {{n}} piezas","setOff":"se pierde la bonificación de {{n}} piezas"}}
 ;
 
 
@@ -2414,7 +2050,7 @@ function installV2(ctx, hooks) {
     }
   }
   const trayIcons = [
-    ["#hud-leaderboard", "ranking"],
+
     [".forge-launch", "forge"],
     ["#assist-launch", "assist"],
     ["#dx-equipment-launch", "workshop"],
@@ -3524,10 +3160,7 @@ function installV2(ctx, hooks) {
       )
     )
       act(def.Type === "Book" ? t("learn") : t("useItem"), () => b.use(item), "m2-btn");
-    if (b.shareEquipment && b.shareable?.(item))
-      act(b.t("share.equipment"), () =>
-        b.shareEquipment(item.uid, me.id),
-      ).dataset.mobileShareEquipment = String(item.uid);
+
     if (equipType(def)) {
       if (b.compare)
         act(t("compare"), () => {
@@ -3703,14 +3336,7 @@ function installV2(ctx, hooks) {
             acts2,
             { className: "m2-btn" },
           );
-        if (b.shareEquipment && b.shareable?.(item))
-          button(b.t("share.equipment"), () => b.shareEquipment(item.uid, me.id), acts2, {
-            className: "m2-btn2",
-          }).dataset.mobileShareEquipment = String(item.uid);
-        if (b.shareCharacter)
-          button(b.t("share.character"), () => b.shareCharacter(me.id), acts2, {
-            className: "m2-btn2",
-          }).dataset.mobileShareCharacter = "";
+
         button(
           v1t("back"),
           () => {
@@ -3755,10 +3381,7 @@ function installV2(ctx, hooks) {
     }
     const acts = el("div", "m2-acts");
     right.append(acts);
-    if (b.shareCharacter)
-      button(b.t("share.character"), () => b.shareCharacter(me.id), acts, {
-        className: "m2-btn2",
-      }).dataset.mobileShareCharacter = "";
+
     button(
       t("fullPanel"),
       () => {
@@ -3968,17 +3591,7 @@ function installV2(ctx, hooks) {
       },
       "mount",
     );
-    const board = $("#hud-leaderboard");
-    if (board)
-      tile(
-        t("leaderboard"),
-        "",
-        () => {
-          closeHub();
-          board.click();
-        },
-        "ranking",
-      );
+
     if (b.equipmentTitle?.())
       tile(
         b.equipmentTitle(),
@@ -4752,17 +4365,7 @@ async function mountMobile(b) {
         },
         body,
       );
-    if (b.shareCharacter) {
-      const owner = b.state()?.me?.id;
-      button(
-        b.t("share.character"),
-        () => {
-          closeDetail();
-          b.shareCharacter(owner);
-        },
-        body,
-      ).dataset.mobileShareCharacter = "";
-    }
+
     button(
       viewText(b.locale, "view") + " \xB7 " + viewText(b.locale, viewMode),
       () => {
@@ -5035,24 +4638,7 @@ async function mountMobile(b) {
       }
       info.append(cards);
     };
-    if (type !== "storage" && b.shareEquipment && b.shareable?.(item)) {
-      const share = button(
-        b.t("share.equipment"),
-        () => {
-          panelTaps.reset();
-          if (!exists()) {
-            closeDetail();
-            return;
-          }
-          closeDetail();
-          return b.shareEquipment(uid, owner);
-        },
-        null,
-        { className: "mobile-inspector-share" },
-      );
-      share.dataset.mobileShareEquipment = String(uid);
-      toolbar.insertBefore(share, close);
-    }
+
     if (b.lockable?.(item) && !(type === "storage" && b.sharedStorageActive?.())) {
       const lockButton = button(
         b.t(b.locked(item) ? "manage.unlock" : "manage.lock"),

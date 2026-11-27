@@ -196,7 +196,6 @@ html[data-turned=left] body{transform:translateY(var(--turn-w)) rotate(-90deg)}
 #m2 .m2-target-marker.friend .m2-target-ring{border-color:#b4e49670;background:#b4e49608;box-shadow:0 0 3px #b4e49622}
 #m2 .m2-ico,#m2 .m2-menu{width:44px;height:44px;border-radius:10px;background:var(--m2-panel);border:1px solid var(--m2-line);display:grid;place-items:center;align-content:center;font:600 18px/1 system-ui;color:#ecd49a;padding:0}
 
-
 #m2 .m2-zone{left:0;top:38%;bottom:0;background:transparent;touch-action:none}
 #m2 .m2-stick{position:absolute;width:116px;height:116px;margin:-58px 0 0 -58px;border-radius:50%;border:2px solid #ffffff3a;background:radial-gradient(circle,#0000000d,#00000047);pointer-events:none}
 #m2 .m2-stick i{position:absolute;left:34px;top:34px;width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ffffff8c,#ffffff24);border:1px solid #ffffff59}
@@ -456,7 +455,6 @@ html[data-ui=m2] #win-dx-equipment .dx-collection-toolbar input[type=search]{gri
 html[data-ui=m2] #win-dx-equipment .dx-equipment-row{grid-template-columns:36px minmax(0,1fr);gap:8px;padding:8px}
 html[data-ui=m2] #win-dx-equipment .dx-equipment-row>.dx-collection-actions{grid-column:1/-1}
 
-
 /* Common actions stay beside the minimap, clear of the central view. */
 #m2 .m2-nav{display:flex;gap:0;align-items:center}
 #m2 .m2-nav .m2-navbtn{position:relative;flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;display:grid;place-items:center;padding:6px;border:0;border-radius:6px;background:none;box-shadow:none;color:#d8c693}
@@ -505,19 +503,6 @@ html[data-ui=m2] #novice-guide:not([open]) .m2-guide-progress,html[data-ui=m2] #
 #m2 .m2-belt>.m2-slot[data-key].warn{border-color:#ff6b5599;box-shadow:0 0 0 1px #ff5a4640}
 #m2 .m2-sk.on{border-color:#e0c67c99;box-shadow:inset 0 0 0 1px #e0c67c33}
 #m2 .m2-sk.drag{border-color:#e0c67ccc;box-shadow:0 0 0 2px #e0c67c40}
-
-/* Sharing keeps its native full-resolution card; only the phone preview fits the logical viewport. */
-html[data-controls=mobile] .equipment-share-dialog{padding:8px;box-sizing:border-box}
-html[data-controls=mobile] .equipment-share-panel{width:calc(var(--mobile-width,100vw) - 16px);max-width:calc(var(--mobile-width,100vw) - 16px);max-height:calc(var(--mobile-height,100dvh) - 16px);padding:8px;box-sizing:border-box}
-html[data-controls=mobile] .equipment-share-toolbar{gap:8px;margin-bottom:4px}
-html[data-controls=mobile] .equipment-share-toolbar h2{font-size:15px}
-html[data-controls=mobile] .equipment-share-toolbar button{min-width:44px;min-height:44px}
-html[data-controls=mobile] .equipment-share-preview{min-height:64px;max-height:none;max-width:none;touch-action:pan-x pan-y;overscroll-behavior:contain}
-html[data-controls=mobile] .equipment-share-output{max-width:100%;height:auto;margin:0 auto}
-html[data-controls=mobile] .equipment-share-actions{gap:6px}
-html[data-controls=mobile] .equipment-share-actions button,html[data-controls=mobile] .equipment-share-actions a,html[data-controls=mobile] .equipment-share-resume{min-height:44px;font-size:12px;padding:6px 10px;box-sizing:border-box}
-html[data-controls=mobile] .equipment-share-status{font-size:12px;margin:4px 0}
-html[data-controls=mobile] .equipment-share-note{font-size:10px;line-height:1.4;margin:4px 0 0}
 
 /* A readable translucent surface for functional controls; unused slots stay quiet. */
 #m2 .m2-atk,#m2 .m2-cyc,#m2 .m2-pg,#m2 .m2-loot{background:#101a1299;border-color:#baa77780}

@@ -422,8 +422,6 @@ async function startupJSON(url, timeout = 8000) {
   }
 }
 
-
-
 const sharedStorageEnabled = true;
 let activeSharedStorage = false;
 function displayedStorage() {
@@ -517,7 +515,7 @@ function officialAccessCopy() {
         home: "官网首页",
         community: "玩家社区",
         guide: "游戏攻略",
-        ranking: "等级排行榜",
+
         cloud: "账号与云存档",
         update: "版本与更新",
         address: "官方地址",
@@ -542,7 +540,7 @@ function officialAccessCopy() {
         home: "Official site",
         community: "Community",
         guide: "Game guide",
-        ranking: "Leaderboard",
+
         cloud: "Account & cloud saves",
         update: "Version & updates",
         address: "Official address",
@@ -571,7 +569,7 @@ function officialAccessCopy() {
         home: "Sitio oficial",
         community: "Comunidad",
         guide: "Guía del juego",
-        ranking: "Clasificación",
+
         cloud: "Cuenta y partidas en la nube",
         update: "Versión y actualizaciones",
         address: "Dirección oficial",
@@ -615,7 +613,7 @@ function officialGameAccessConfig() {
       ["home", prefix + "/"],
       ["community", prefix + "/community/?game=" + game],
       ["guide", prefix + guide],
-      ["ranking", prefix + "/leaderboard/?game=" + game],
+
     ],
   };
 }
@@ -779,8 +777,6 @@ function officialGameAccessWindow() {
   w.body.append(statement, nav, address, row, status, hint, details, version);
   return w;
 }
-
-
 
 // Native draw.idx CLOTH1 identities; use a separate atlas bank to preserve cached clients.
 // Generated from tools/native_armour.py; native Tex is the shared display identity.
@@ -957,7 +953,7 @@ import {
   progressFingerprint,
   cloudRoleKey,
 } from "/Game/site-assets/auto-cloud-save.mjs";
-import { leaderboardMessages } from "/Game/site-assets/leaderboard-i18n.mjs";
+
 import { createGameLanguageReporter } from "/Game/site-assets/account-attribution.mjs";
 import { CloudSaveClient } from "/Game/site-assets/cloud-save-client.mjs";
 import {
@@ -3307,7 +3303,6 @@ function makeWindow(id, title, classes) {
   return { el, body: el.querySelector(".body") };
 }
 
-
 async function icon(c, id, pack = "items") {
   const d = items.get(id);
   if (pack === "items" && d?.CustomIcon) {
@@ -3601,18 +3596,18 @@ function baseItemText(item) {
     },
   );
 }
-function tip(el, html, shareItem) {
+function tip(el, html, hoverItem) {
   if (mobile) return mobile.tip(el, html);
-  if (shareItem && equipmentShareable(shareItem)) return bindEquipmentShareTip(el, html, shareItem);
+  if (hoverItem && equipmentHoverable(hoverItem)) return bindEquipmentTip(el, html, hoverItem);
   el.onpointerenter = (e) => {
-    resetEquipmentShareTip();
+    resetEquipmentTip();
     if (e?.buttons || carriedBagItem) return;
     $("#tip").innerHTML = html;
     $("#tip").hidden = false;
   };
   el.onpointermove = (e) => {
     if (e.buttons || carriedBagItem) {
-      resetEquipmentShareTip();
+      resetEquipmentTip();
       return;
     }
     const p = gamePoint(e);
@@ -3621,7 +3616,7 @@ function tip(el, html, shareItem) {
     $("#tip").style.top =
       Math.max(8, Math.min(screen.h - $("#tip").offsetHeight - 8, p.y + 15)) + "px";
   };
-  el.onpointerleave = resetEquipmentShareTip;
+  el.onpointerleave = resetEquipmentTip;
 }
 const equipSlots = {
   Weapon: 0,
@@ -3658,7 +3653,6 @@ async function useItem(item, preferredSlot) {
     await command("EquipItem", { Grid: "Inventory", UniqueID: item.uid, To: to });
   } else await command("UseItem", { Grid: "Inventory", UniqueID: item.uid });
 }
-
 
 function openWindow(name, refresh = false) {
   if (!state?.me) return;
@@ -3800,15 +3794,7 @@ function openWindow(name, refresh = false) {
       };
     });
     paperdoll(w.body.querySelector(".paperdoll"), m);
-    if (!mobileMode) {
-      const share = document.createElement("button");
-      share.type = "button";
-      share.className = "character-share-button";
-      share.dataset.shareCharacter = "";
-      share.textContent = i18n.t("share.character");
-      share.onclick = () => shareCharacter();
-      w.body.querySelector(".char-equipment").append(share);
-    }
+
     talismanSlot(w, m);
     setupEquipmentManagement(w, "character");
   } else if (name === "skills") {
@@ -5492,7 +5478,6 @@ function dreamEquipmentText(item) {
   );
 }
 
-
 function dreamMaterialText(item) {
   const d = items.get(item.id),
     book = d.Type === "Book",
@@ -5560,19 +5545,18 @@ function dreamMaterialText(item) {
   );
 }
 
-// Equipment hover is read-only. Explicit sharing lives in the window header.
-function equipmentShareable(item) {
+// Equipment hover shows the native item details.
+function equipmentHoverable(item) {
   const def = items.get(item?.id);
   return !!def && (def.Type in equipSlots || !!def.BossAccessory);
 }
-function resetEquipmentShareTip() {
+function resetEquipmentTip() {
   const tip = $("#tip");
   tip.hidden = true;
-  tip.classList.remove("equipment-share-tip");
   tip.onpointerenter = tip.onpointerleave = null;
   for (const key of ["pointer-events", "max-width", "min-width"]) tip.style.removeProperty(key);
 }
-function equipmentShareTipPlacement(source, anchor, size, bounds) {
+function equipmentTipPlacement(source, anchor, size, bounds) {
   const gap = 8,
     clamp = (n, max) => Math.max(gap, Math.min(Math.max(gap, max), n));
   let x = anchor.left - size.w - gap;
@@ -5580,7 +5564,7 @@ function equipmentShareTipPlacement(source, anchor, size, bounds) {
   if (x + size.w > bounds.w - gap) x = source.right - size.w;
   return { x: clamp(x, bounds.w - size.w - gap), y: clamp(source.top, bounds.h - size.h - gap) };
 }
-function bindEquipmentShareTip(owner, html, item) {
+function bindEquipmentTip(owner, html, item) {
   const tip = $("#tip");
   const rect = (node) => {
     const r = node.getBoundingClientRect(),
@@ -5589,14 +5573,14 @@ function bindEquipmentShareTip(owner, html, item) {
     return { left: a.x, top: a.y, right: b.x, bottom: b.y };
   };
   owner.onpointerenter = (e) => {
-    resetEquipmentShareTip();
+    resetEquipmentTip();
     if (e?.buttons || carriedBagItem) return;
     tip.style.pointerEvents = "none";
     tip.style.maxWidth = Math.min(324, Math.max(24, screen.w - 16)) + "px";
     tip.innerHTML = html;
     tip.hidden = false;
     tip.scrollTop = 0;
-    const pos = equipmentShareTipPlacement(
+    const pos = equipmentTipPlacement(
       rect(owner),
       rect(owner.closest(".window") || owner),
       { w: tip.offsetWidth, h: tip.offsetHeight },
@@ -5606,762 +5590,9 @@ function bindEquipmentShareTip(owner, html, item) {
     tip.style.top = pos.y + "px";
   };
   owner.onpointermove = (e) => {
-    if (e?.buttons || carriedBagItem) resetEquipmentShareTip();
+    if (e?.buttons || carriedBagItem) resetEquipmentTip();
   };
-  owner.onpointerleave = resetEquipmentShareTip;
-}
-function equipmentShareGame() {
-  return typeof darkforgedConfig !== "undefined" && darkforgedConfig?.enabled
-    ? "darkforged"
-    : "classic";
-}
-function equipmentShareIdentity(card, { game, playerName }) {
-  const header = document.createElement("header");
-  header.className = "equipment-share-identity";
-  header.innerHTML =
-    '<div class="equipment-share-brand"><span class="equipment-share-game">' +
-    esc(i18n.t(game === "darkforged" ? "share.gameDark" : "share.gameClassic")) +
-    '</span><span class="equipment-share-edition">' +
-    esc(i18n.t(game === "darkforged" ? "share.darkTag" : "share.classicTag")) +
-    '</span></div><div class="equipment-share-player"><small>' +
-    esc(i18n.t("share.player")) +
-    "</small><strong>" +
-    esc(playerName) +
-    "</strong></div>";
-  // Solid gold lettering survives SVG foreignObject rasterization. Gradient
-  // text clipping can otherwise export a gold rectangle with invisible text.
-  const brand = header.querySelector(".equipment-share-game");
-  brand.style.background = "none";
-  brand.style.backgroundClip = "border-box";
-  brand.style.webkitBackgroundClip = "border-box";
-  brand.style.color = "#ead39c";
-  brand.style.webkitTextFillColor = "#ead39c";
-  brand.style.textShadow = "0 1px 0 #58421f,0 2px 2px #000";
-  card.prepend(header);
-  return header;
-}
-async function shareEquipment(item) {
-  if (!state?.me || !equipmentShareable(item)) return;
-  const copy = structuredClone(item),
-    game = equipmentShareGame(),
-    playerName = String(state.me.name || ""),
-    def = items.get(copy.id),
-    name = typeof dxDisplayName === "function" && copy.dx ? dxDisplayName(copy) : itemName(def);
-  const card = document.createElement("article");
-  card.className = "equipment-share-card";
-  card.style.setProperty("--share-quality", exceptionalColor(copy));
-  equipmentShareIdentity(card, { game, playerName });
-  const details = document.createElement("div");
-  details.innerHTML = itemText(copy);
-  const text = details.firstElementChild;
-  if (!text) return;
-  const heading = document.createElement("div");
-  heading.className = "equipment-share-heading";
-  const c = document.createElement("canvas");
-  c.width = c.height = 36;
-  c.className = "equipment-share-icon";
-  const title = document.createElement("div");
-  title.className = "classic-item";
-  const label = text.querySelector(":scope > b");
-  if (label) title.append(label);
-  const stars = text.querySelector(":scope > .native-stars");
-  if (stars) title.append(stars);
-  heading.append(c, title);
-  card.append(heading, text);
-  const footer = document.createElement("footer");
-  footer.className = "equipment-share-footer";
-  footer.innerHTML = "<span>backmir.org</span><span>" + esc(i18n.t("share.title")) + "</span>";
-  card.append(footer);
-  // icon() handles native atlases, custom relics, and the Darkforged icon adapter.
-  const ready = icon(c, game === "darkforged" ? copy : copy.id);
-  await openEquipmentShareSnapshot({
-    card,
-    game,
-    playerName,
-    itemName: name,
-    kind: "equipment",
-    ready,
-  });
-}
-const equipmentSharePaintProperties = [
-  "display",
-  "position",
-  "top",
-  "right",
-  "bottom",
-  "left",
-  "z-index",
-  "overflow",
-  "box-sizing",
-  "width",
-  "height",
-  "min-width",
-  "min-height",
-  "max-width",
-  "max-height",
-  "padding",
-  "margin",
-  "border",
-  "border-radius",
-  "border-color",
-  "border-width",
-  "border-style",
-  "border-top",
-  "border-bottom",
-  "border-left",
-  "border-right",
-  "background",
-  "background-color",
-  "background-image",
-  "background-clip",
-  "-webkit-background-clip",
-  "color",
-  "opacity",
-  "box-shadow",
-  "font",
-  "font-family",
-  "font-size",
-  "font-style",
-  "font-weight",
-  "line-height",
-  "letter-spacing",
-  "text-align",
-  "text-decoration",
-  "text-shadow",
-  "text-size-adjust",
-  "-webkit-text-size-adjust",
-  "white-space",
-  "word-break",
-  "overflow-wrap",
-  "vertical-align",
-  "grid-template-columns",
-  "grid-template-rows",
-  "grid-column",
-  "gap",
-  "column-gap",
-  "row-gap",
-  "flex",
-  "flex-direction",
-  "flex-wrap",
-  "align-items",
-  "align-self",
-  "justify-content",
-  "object-fit",
-  "image-rendering",
-  "float",
-  "clear",
-  "transform",
-  "transform-origin",
-];
-let equipmentShareFontPromise;
-async function equipmentShareFont() {
-  if (!equipmentShareFontPromise)
-    equipmentShareFontPromise = (async () => {
-      const response = await fetch(
-        new URL("assets/share-font/backmir-share-sans.6a1acde9f42c8475.woff2", document.baseURI),
-        { credentials: "same-origin" },
-      );
-      if (!response.ok) throw Error(i18n.t("share.renderError"));
-      const bytes = await response.arrayBuffer(),
-        font = new FontFace("BackMir Share Sans", bytes, { weight: "400", style: "normal" });
-      await font.load();
-      document.fonts.add(font);
-      const data = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(new Blob([bytes], { type: "font/woff2" }));
-      });
-      return (
-        '@font-face{font-family:"BackMir Share Sans";font-style:normal;font-weight:400;src:url("' +
-        data +
-        '") format("woff2")}'
-      );
-    })().catch((error) => {
-      equipmentShareFontPromise = null;
-      throw error;
-    });
-  return equipmentShareFontPromise;
-}
-async function equipmentShareInlineBackground(value, cache) {
-  const matches = [...value.matchAll(/url\(["']?([^"')]+)["']?\)/g)];
-  for (const match of matches) {
-    const url = match[1];
-    if (url.startsWith("data:")) continue;
-    if (!cache.has(url))
-      cache.set(
-        url,
-        (async () => {
-          const target = new URL(url, document.baseURI);
-          if (target.origin !== location.origin) throw Error(i18n.t("share.renderError"));
-          const response = await fetch(target.href, { credentials: "same-origin" });
-          if (!response.ok) throw Error(i18n.t("share.renderError"));
-          const blob = await response.blob();
-          return await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        })(),
-      );
-    value = value.replace(match[0], 'url("' + (await cache.get(url)) + '")');
-  }
-  return value;
-}
-async function equipmentShareRasterize(card) {
-  const fontCSS = await equipmentShareFont();
-  await document.fonts.ready;
-  await Promise.all([...card.querySelectorAll("img")].map((img) => img.decode()));
-  const width = Math.ceil(card.offsetWidth),
-    height = Math.ceil(Math.max(card.offsetHeight, card.scrollHeight));
-  if (!width || !height) throw Error(i18n.t("share.renderError"));
-  const clone = card.cloneNode(true),
-    originals = [card, ...card.querySelectorAll("*")],
-    copies = [clone, ...clone.querySelectorAll("*")],
-    backgrounds = [],
-    imageCache = new Map();
-  originals.forEach((element, index) => {
-    const style = getComputedStyle(element),
-      target = copies[index];
-    for (const key of equipmentSharePaintProperties)
-      target.style.setProperty(key, style.getPropertyValue(key));
-    // Keep the native quality colour, without SVG text-clipping gradients that
-    // can become solid bars. Only this export clone is changed.
-    if (element.classList.contains("equipment-flow-title")) {
-      target.style.background = "none";
-      target.style.backgroundClip = "border-box";
-      target.style.webkitBackgroundClip = "border-box";
-      target.style.color = style.color;
-      target.style.webkitTextFillColor = style.color;
-    }
-    if (style.backgroundImage.includes("url("))
-      backgrounds.push(
-        equipmentShareInlineBackground(style.backgroundImage, imageCache).then(
-          (value) => (target.style.backgroundImage = value),
-        ),
-      );
-    target.style.animation = "none";
-    target.style.transition = "none";
-    if (element instanceof HTMLCanvasElement) {
-      const image = document.createElement("img");
-      image.src = element.toDataURL("image/png");
-      image.setAttribute("style", target.getAttribute("style"));
-      image.width = element.width;
-      image.height = element.height;
-      target.replaceWith(image);
-    }
-  });
-  await Promise.all(backgrounds);
-  // SVG foreignObject is a separate document on mobile. Keep the source pixel
-  // width and disable text autosizing there as well as in the live card.
-  clone.style.width = width + "px";
-  clone.style.maxWidth = "none";
-  clone.style.textSizeAdjust = "none";
-  clone.style.webkitTextSizeAdjust = "none";
-  clone.style.margin = "0";
-  clone.style.position = "relative";
-  clone.style.transform = "none";
-  clone.style.maxHeight = "none";
-  clone.style.overflow = "visible";
-  const svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="' +
-    width +
-    '" height="' +
-    height +
-    '"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">' +
-    "<style>" +
-    fontCSS +
-    "</style>" +
-    new XMLSerializer().serializeToString(clone) +
-    "</div></foreignObject></svg>";
-  const image = new Image();
-  image.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-  await image.decode();
-  const scale = Math.min(2, 16000 / width, 16000 / height, Math.sqrt(32000000 / (width * height))),
-    canvas = document.createElement("canvas");
-  canvas.width = Math.ceil(width * scale);
-  canvas.height = Math.ceil(height * scale);
-  canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
-  let blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.72));
-  // Safari can return PNG for a WebP request. Encode locally instead of uploading
-  // an anonymous image or labelling PNG as WebP; the worker is cached offline.
-  const header = blob ? new Uint8Array(await blob.slice(0, 12).arrayBuffer()) : [];
-  if (
-    blob?.type !== "image/webp" ||
-    header[0] !== 82 ||
-    header[1] !== 73 ||
-    header[2] !== 70 ||
-    header[3] !== 70 ||
-    header[8] !== 87 ||
-    header[9] !== 69 ||
-    header[10] !== 66 ||
-    header[11] !== 80 ||
-    new DataView(header.buffer).getUint32(4, true) + 8 !== blob.size
-  ) {
-    const { encodeWebP } = await import("/Game/assets/webp-codec/encode.js");
-    blob = await encodeWebP(
-      canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height),
-    );
-  }
-  if (!blob || blob.type !== "image/webp") throw Error(i18n.t("share.renderError"));
-  return { blob, canvas, width, height };
-}
-
-
-async function equipmentShareRequest(
-  path,
-  { body, method = "POST", type = "application/json" } = {},
-) {
-  const controller = new AbortController(),
-    timer = setTimeout(() => controller.abort(), 25000);
-  try {
-    const response = await fetch(path, {
-      method,
-      credentials: "same-origin",
-      headers: {
-        "X-Backmir-Community": "1",
-        ...(method === "GET" ? {} : { "Content-Type": type }),
-      },
-      body:
-        method === "GET" ? undefined : type === "application/json" ? JSON.stringify(body) : body,
-      signal: controller.signal,
-    });
-    let data;
-    try {
-      data = await response.json();
-    } catch {
-      throw Error(i18n.t("share.unavailable"));
-    }
-    if (!response.ok) {
-      const error = Error(data.error || i18n.t("share.failed"));
-      error.status = response.status;
-      throw error;
-    }
-    return data;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-async function requireEquipmentShareUser({ prompt = true } = {}) {
-  try {
-    const session = await equipmentShareRequest("/Game/api/account/me", { method: "GET" });
-    if (session.user?.id) return session.user;
-  } catch (error) {
-    if (error.status !== 401) {
-      if (typeof say === "function") say(i18n.t("share.unavailable"));
-      return null;
-    }
-  }
-  if (typeof say === "function") say(i18n.t("share.loginBeforeShare"));
-  if (prompt) {
-    if (typeof gameSignIn === "function") gameSignIn("equipment_share");
-    else {
-      const prefix = "/Game"+(i18n.locale === "en" ? "/en" : i18n.locale === "es" ? "/es" : "");
-      window.open(prefix + "/account/", "_blank", "noopener");
-    }
-  }
-  return null;
-}
-async function openEquipmentShareSnapshot({
-  card,
-  game = equipmentShareGame(),
-  playerName = state?.me?.name || "",
-  itemName = "",
-  kind = "equipment",
-  ready = Promise.resolve(),
-}) {
-  // Observe early icon/paperdoll failures immediately; the real await below still reports them.
-  ready = Promise.resolve(ready);
-  ready.catch(() => {});
-  if (!card) return;
-  document.getElementById("equipment-share-dialog")?.querySelector("[data-share-close]")?.click();
-  cancelControl();
-  if (typeof cancelBagCarry === "function") cancelBagCarry();
-  $("#tip").hidden = true;
-  const snapshot = {
-    requestId: crypto.randomUUID(),
-    imageId: null,
-    owner: null,
-    game,
-    playerName: String(playerName),
-    itemName: String(itemName),
-    kind,
-    locale: i18n.locale,
-    blob: null,
-    canvas: null,
-    url: null,
-    disposed: false,
-    busy: false,
-    published: false,
-  };
-  const dialog = document.createElement("section");
-  dialog.id = "equipment-share-dialog";
-  dialog.className = "equipment-share-dialog";
-  dialog.setAttribute("role", "dialog");
-  dialog.setAttribute("aria-modal", "true");
-  dialog.setAttribute("aria-label", i18n.t("share.title"));
-  dialog.innerHTML =
-    '<div class="equipment-share-panel"><header class="equipment-share-toolbar"><h2>' +
-    esc(i18n.t(kind === "character" ? "share.characterTitle" : "share.title")) +
-    '</h2><button type="button" data-share-close aria-label="' +
-    esc(i18n.t("share.close")) +
-    '">×</button></header><div class="equipment-share-preview" data-share-preview></div><p class="equipment-share-status" role="status" aria-live="polite">' +
-    esc(i18n.t("share.generating")) +
-    '</p><div class="equipment-share-actions"><button type="button" data-share-publish disabled>' +
-    esc(i18n.t("share.publish")) +
-    '</button><button type="button" data-share-copy disabled>' +
-    esc(i18n.t("share.copy")) +
-    '</button><button type="button" data-share-save disabled>' +
-    esc(i18n.t("share.save")) +
-    '</button><button type="button" data-share-login hidden>' +
-    esc(i18n.t("share.login")) +
-    '</button><a data-share-view hidden target="_blank" rel="noopener">' +
-    esc(i18n.t("share.view")) +
-    "</a></div></div>";
-  const preview = dialog.querySelector("[data-share-preview]"),
-    status = dialog.querySelector('[role="status"]'),
-    publish = dialog.querySelector("[data-share-publish]"),
-    copy = dialog.querySelector("[data-share-copy]"),
-    save = dialog.querySelector("[data-share-save]"),
-    login = dialog.querySelector("[data-share-login]");
-  preview.append(card);
-  document.body.append(dialog);
-  const resume = document.createElement("button");
-  resume.type = "button";
-  resume.className = "equipment-share-resume";
-  resume.textContent = i18n.t("share.return");
-  resume.hidden = true;
-  document.body.append(resume);
-  const message = (text) => {
-    if (!snapshot.disposed) status.textContent = text;
-  };
-  const close = () => {
-    snapshot.disposed = true;
-    dialog.remove();
-    resume.remove();
-    if (snapshot.url) URL.revokeObjectURL(snapshot.url);
-    snapshot.canvas = null;
-  };
-  dialog.querySelector("[data-share-close]").onclick = close;
-  dialog.addEventListener("keydown", (event) => {
-    event.stopPropagation();
-    if (event.key === "Escape") {
-      event.preventDefault();
-      close();
-    }
-  });
-  dialog.addEventListener("pointerdown", (event) => event.stopPropagation());
-  resume.onclick = () => {
-    dialog.hidden = false;
-    resume.hidden = true;
-  };
-  login.onclick = () => {
-    dialog.hidden = true;
-    resume.hidden = false;
-    if (typeof gameSignIn === "function") gameSignIn("equipment_share");
-    else {
-      const prefix = "/Game"+(snapshot.locale === "en" ? "/en" : snapshot.locale === "es" ? "/es" : "");
-      window.open(prefix + "/account/", "_blank", "noopener");
-    }
-  };
-  const filename = () =>
-    ("BackMir-" + snapshot.itemName).replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").slice(0, 110) +
-    ".webp";
-  save.onclick = () => {
-    if (!snapshot.blob) return;
-    const a = document.createElement("a");
-    a.href = snapshot.url;
-    a.download = filename();
-    a.click();
-    message(i18n.t("share.saved"));
-  };
-  copy.onclick = async () => {
-    if (!snapshot.blob) return;
-    if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
-      message(i18n.t("share.copyUnavailable"));
-      return;
-    }
-    try {
-      const supportsWebP =
-        typeof ClipboardItem.supports === "function" && ClipboardItem.supports("image/webp");
-      // Chrome's clipboard accepts PNG, while uploaded/downloaded files remain WebP.
-      const type = supportsWebP ? "image/webp" : "image/png",
-        data = supportsWebP
-          ? snapshot.blob
-          : new Promise((resolve, reject) =>
-              snapshot.canvas.toBlob(
-                (blob) => (blob ? resolve(blob) : reject(Error())),
-                "image/png",
-              ),
-            );
-      await navigator.clipboard.write([new ClipboardItem({ [type]: data })]);
-      message(i18n.t("share.copied"));
-    } catch {
-      message(i18n.t("share.copyUnavailable"));
-    }
-  };
-  publish.onclick = async () => {
-    if (snapshot.busy || snapshot.published || !snapshot.blob) return;
-    snapshot.busy = true;
-    publish.disabled = true;
-    message(i18n.t("share.publishing"));
-    try {
-      const session = await equipmentShareRequest("/Game/api/account/me", { method: "GET" });
-      if (!session.user) {
-        login.hidden = false;
-        message(i18n.t("share.loginRequired"));
-        return;
-      }
-      if (snapshot.owner && snapshot.owner !== session.user.id)
-        throw Error(i18n.t("share.accountChanged"));
-      snapshot.owner = session.user.id;
-      if (!snapshot.imageId) {
-        const image = await equipmentShareRequest("/Game/api/community/images", {
-          body: snapshot.blob,
-          type: "image/webp",
-        });
-        snapshot.imageId = image.id;
-      }
-      const result = await equipmentShareRequest("/Game/api/community/equipment-share", {
-        body: {
-          requestId: snapshot.requestId,
-          imageId: snapshot.imageId,
-          game: snapshot.game,
-          playerName: snapshot.playerName,
-          itemName: snapshot.itemName,
-          locale: snapshot.locale,
-          kind: snapshot.kind,
-        },
-      });
-      const target = new URL(
-        result.url || "/Game/community/posts/" + (result.postId || result.id) + "/",
-        location.origin,
-      );
-      if (target.origin !== location.origin) throw Error(i18n.t("share.failed"));
-      if (snapshot.locale !== "zh-CN" && target.pathname.startsWith("/Game/community/"))
-        target.pathname = "/" + snapshot.locale + target.pathname;
-      const link = dialog.querySelector("[data-share-view]");
-      link.href = target.href;
-      link.hidden = false;
-      snapshot.published = true;
-      login.hidden = true;
-      message(i18n.t("share.published"));
-    } catch (error) {
-      if (error.status === 401) {
-        login.hidden = false;
-        message(i18n.t("share.loginRequired"));
-      } else
-        message(
-          error.name === "AbortError" || error instanceof TypeError
-            ? i18n.t("share.networkError")
-            : error.message || i18n.t("share.failed"),
-        );
-    } finally {
-      snapshot.busy = false;
-      if (!snapshot.disposed) publish.disabled = snapshot.published;
-    }
-  };
-  try {
-    await ready;
-    const raster = await equipmentShareRasterize(card);
-    if (snapshot.disposed) return;
-    Object.assign(snapshot, raster);
-    snapshot.url = URL.createObjectURL(snapshot.blob);
-    const output = document.createElement("img");
-    output.src = snapshot.url;
-    output.className = "equipment-share-output";
-    output.alt = i18n.t("share.imageAlt", { item: snapshot.itemName });
-    output.dataset.shareBytes = String(snapshot.blob.size);
-    output.dataset.shareFormat = snapshot.blob.type;
-    output.style.width = card.offsetWidth + "px";
-    preview.replaceChildren(output);
-    publish.disabled = copy.disabled = save.disabled = false;
-    message(i18n.t("share.ready"));
-    publish.focus();
-  } catch {
-    message(i18n.t("share.renderError"));
-  }
-}
-
-// A frozen view of the actual character panel and every equipped item. No save
-// or combat command is used to compose a sharing image.
-function characterShareStyles() {
-  if (document.getElementById("character-share-styles")) return;
-  const style = document.createElement("style");
-  style.id = "character-share-styles";
-  style.textContent = `
- .equipment-share-card.character-share-card{width:960px;max-width:none;padding:22px;background:#081008;color:#eee;box-sizing:border-box}
- .equipment-share-card.character-share-card.character-share-wide{width:1920px}
- .character-share-columns{display:flex;gap:20px;align-items:flex-start}
- .character-share-panel{flex:1;min-width:0}
- .character-share-card .character-share-title{font:22px/1.4 SimSun,"Songti SC",serif;color:#ddd5bc;margin:14px 0}
- .character-share-overview{padding:12px;border:1px solid #4c4938}
- .character-share-overview .char-layout{display:flex;gap:20px;align-items:flex-start}
- .character-share-overview .char-equipment{width:405px;flex:none}
- .character-share-overview .paperdoll{width:405px;height:423px;margin:0}
- .character-share-overview .char-stats{flex:1;min-width:0;font:14px/1.55 SimSun,"Songti SC",serif}
- .character-share-overview .char-stats p{white-space:normal}
- .character-share-overview .character-help{display:none}
- .character-share-overview button{pointer-events:none}
- .character-share-vitals{display:flex;gap:24px;flex-wrap:wrap;color:#f3e6b7;margin:0 0 12px;font:15px/1.5 SimSun,"Songti SC",serif}
- .character-share-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
- .character-share-detail{min-width:0;padding:10px;border:1px solid #4c4938;background:#0c140b;box-sizing:border-box}
- .character-share-detail-heading{display:flex;align-items:center;gap:8px;color:#aaa58e;font:13px/1.4 SimSun,"Songti SC",serif;margin-bottom:8px}
- .character-share-detail-heading canvas{width:40px;height:40px;flex:none;image-rendering:pixelated}
- .character-share-detail .classic-item{font-size:14px;line-height:1.4}
- .character-share-detail .equipment-tooltip,.character-share-detail .native-material{min-width:0;max-width:none;width:auto;max-height:none;overflow:visible}
- .character-share-detail .classic-item>b{font-size:16px}
- .character-share-detail .native-item-meta{font-size:12px;gap:3px 7px}
- .character-share-detail .native-item-section{overflow-wrap:anywhere}
- .character-share-card .equipment-share-footer{margin-top:16px}
- `;
-  document.head.append(style);
-}
-
-
-async function shareCharacter() {
-  if (!state?.me) return;
-  characterShareStyles();
-  const current = document.querySelector("#win-character .char-layout");
-  if (!current) return;
-  // itemText reads the active set/requirement context. Freeze its output before
-  // the first await, together with the stats and the paperdoll's slot contents.
-  const me = structuredClone(state.me),
-    game = equipmentShareGame(),
-    playerName = String(me.name || "");
-  // Native character equipment has 15 distinct slots, including both rings,
-  // both bracelets, the inventory-backed mount (13), and the medal (14).
-  const worn = Array.from({ length: 15 }, (_, slot) => ({
-    item:
-      slot === 13
-        ? me.inventory.find((i) => i?.uid === me.mountUid) || me.equipment[slot]
-        : me.equipment[slot],
-    slot,
-  })).filter((row) => row.item);
-  const details = worn.map((row) => ({
-    ...row,
-    html: itemText(row.item),
-    label:
-      current.querySelector('[data-equipment-slot="' + row.slot + '"]')?.dataset.label ||
-      i18n.t("character.slot." + row.slot),
-  }));
-  const layout = current.cloneNode(true);
-  const originals = current.querySelectorAll("canvas"),
-    copies = layout.querySelectorAll("canvas");
-  originals.forEach((canvas, index) => {
-    copies[index].width = canvas.width;
-    copies[index].height = canvas.height;
-    copies[index].getContext("2d").drawImage(canvas, 0, 0);
-  });
-  layout.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
-  layout.querySelectorAll(".character-help,.character-share-button").forEach((el) => el.remove());
-  layout.querySelectorAll("button").forEach((el) => {
-    el.tabIndex = -1;
-    el.removeAttribute("title");
-  });
-  const card = document.createElement("article");
-  card.className =
-    "equipment-share-card character-share-card" +
-    (details.length > 6 ? " character-share-wide" : "");
-  card.style.setProperty("--share-quality", "#c8b579");
-  equipmentShareIdentity(card, { game, playerName });
-  const columns = document.createElement("div");
-  columns.className = "character-share-columns";
-  card.append(columns);
-  const primary = document.createElement("section");
-  primary.className = "character-share-panel";
-  columns.append(primary);
-  const heading = document.createElement("h2");
-  heading.className = "character-share-title";
-  heading.textContent = i18n.t("share.characterTitle");
-  primary.append(heading);
-  const vitals = document.createElement("div");
-  vitals.className = "character-share-vitals";
-  for (const [key, value] of [
-    ["HP", me.hp],
-    ["MP", me.mp],
-  ])
-    if (Number.isFinite(value) && Number.isFinite(me.stats?.[key])) {
-      const line = document.createElement("span");
-      line.textContent = i18n.stat(key) + " " + value + " / " + me.stats[key];
-      vitals.append(line);
-    }
-  primary.append(vitals);
-  const overview = document.createElement("section");
-  overview.className = "character-share-overview";
-  overview.append(layout);
-  primary.append(overview);
-  const icons = [],
-    groups = details.length > 6 ? [details.slice(0, 6), details.slice(6)] : [details];
-  for (const [index, group] of groups.entries()) {
-    const panel = index === 0 ? primary : document.createElement("section");
-    if (index) {
-      panel.className = "character-share-panel";
-      columns.append(panel);
-    }
-    const subtitle = document.createElement("h2");
-    subtitle.className = "character-share-title";
-    subtitle.textContent = i18n.t("share.equippedDetails");
-    panel.append(subtitle);
-    const grid = document.createElement("div");
-    grid.className = "character-share-grid";
-    for (const row of group) {
-      const cell = document.createElement("section");
-      cell.className = "character-share-detail";
-      cell.dataset.equipmentSlot = String(row.slot);
-      cell.dataset.equipmentUid = String(row.item.uid);
-      const top = document.createElement("div");
-      top.className = "character-share-detail-heading";
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 36;
-      icons.push([canvas, game === "darkforged" ? row.item : row.item.id]);
-      const label = document.createElement("span");
-      label.textContent = row.label;
-      top.append(canvas, label);
-      cell.append(top);
-      const body = document.createElement("div");
-      body.innerHTML = row.html;
-      cell.append(body);
-      grid.append(cell);
-    }
-    if (!group.length) {
-      const empty = document.createElement("p");
-      empty.textContent = i18n.t("share.noEquipment");
-      grid.append(empty);
-    }
-    panel.append(grid);
-  }
-  const footer = document.createElement("footer");
-  footer.className = "equipment-share-footer";
-  const source = document.createElement("span");
-  source.textContent = "backmir.org";
-  const caption = document.createElement("span");
-  caption.textContent = i18n.t("share.characterTitle");
-  footer.append(source, caption);
-  card.append(footer);
-  const ready = (async () => {
-    const doll = layout.querySelector(".paperdoll");
-    if (doll) {
-      doll.querySelectorAll(".doll-art").forEach((el) => el.remove());
-      await paperdoll(doll, me);
-    }
-    for (const slot of layout.querySelectorAll("[data-equipment-slot]")) {
-      const entry = details.find((row) => row.slot === Number(slot.dataset.equipmentSlot));
-      if (entry)
-        for (const canvas of slot.querySelectorAll("canvas"))
-          icons.push([canvas, game === "darkforged" ? entry.item : entry.item.id]);
-    }
-    await Promise.all(icons.map(([canvas, id]) => icon(canvas, id)));
-  })();
-  return openEquipmentShareSnapshot({
-    card,
-    game,
-    playerName,
-    itemName: i18n.t("share.characterTitle"),
-    kind: "character",
-    ready,
-  });
+  owner.onpointerleave = resetEquipmentTip;
 }
 
 function drawQuestMarker(a, p) {
@@ -537882,7 +537113,6 @@ function confirmStorageUnlock(page) {
   w.body.querySelector("[data-cancel]").onclick = () => w.el.remove();
 }
 
-
 // Keep locked rows outside the real inventory so every transfer respects capacity.
 function prepareExpandableBag(w, m) {
   prepareBagTabs(w, m);
@@ -537944,7 +537174,7 @@ function endEquipmentManagement() {
   equipmentManagement = null;
   managementPress = null;
   cancelBagCarry();
-  resetEquipmentShareTip();
+  resetEquipmentTip();
   syncEquipmentManagement();
 }
 function syncEquipmentManagement() {
@@ -537966,7 +537196,7 @@ function syncEquipmentManagement() {
     if (hint) {
       hint.hidden = !active;
       const text = active
-        ? managementText(active.mode === "share" ? "chooseShare" : "chooseLock")
+        ? managementText("chooseLock")
         : "";
       if (hint.textContent !== text) hint.textContent = text;
     }
@@ -538003,7 +537233,7 @@ function setupEquipmentManagement(w, kind) {
   const toolbar = document.createElement("nav");
   toolbar.className = "equipment-management-actions";
   toolbar.setAttribute("aria-label", managementText("actions"));
-  for (const mode of ["share", "lock"]) {
+  for (const mode of ["lock"]) {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.managementMode = mode;
@@ -538012,7 +537242,7 @@ function setupEquipmentManagement(w, kind) {
       if (equipmentManagement?.busy) return;
       cancelControl();
       cancelBagCarry();
-      resetEquipmentShareTip();
+      resetEquipmentTip();
       equipmentManagement =
         equipmentManagement?.window === kind && equipmentManagement.mode === mode
           ? null
@@ -538063,13 +537293,7 @@ async function selectManagedEquipment(slot) {
     !equipmentLockable(item, items.get(item?.id))
   )
     return;
-  const uid = item.uid,
-    owner = m.owner;
-  if (m.mode === "share") {
-    endEquipmentManagement();
-    await shareEquipment(item, owner);
-    return;
-  }
+  const uid = item.uid;
   m.busy = true;
   syncEquipmentManagement();
   try {
@@ -538089,7 +537313,7 @@ document.addEventListener(
       managementSuppressClick = 0;
       return;
     }
-    resetEquipmentShareTip();
+    resetEquipmentTip();
     e.stopImmediatePropagation();
     if (e.pointerType !== "touch") e.preventDefault();
     if (e.button === 0)
@@ -545915,15 +545139,6 @@ function syncGameLoops() {
   }
 }
 
-
-
-const rankButton = document.createElement("button");
-rankButton.id = "hud-leaderboard";
-rankButton.dataset.gameLeaderboard = "";
-utilityActionHost().prepend(rankButton);
-document.addEventListener("click", (event) => {
-  if (event.target.closest("[data-game-leaderboard]")) gameLeaderboardWindow();
-});
 const accountTrack = browserAccountFunnel({ locale: () => i18n.locale });
 const siteCloud = new CloudSaveClient({
   context: (owner) => {
@@ -546215,21 +545430,12 @@ function gameAccountMarkup() {
     esc(i18n.path("/Game/account/")) +
     '" target="_blank" rel="noopener">' +
     esc(view.link) +
-    '</a><button type="button" data-game-leaderboard>' +
-    esc(leaderboardMessages(i18n.locale).title) +
-    "</button>"
+    '</a>'
   );
 }
 function renderGameAccount() {
   const view = accountPresentation(accountSession.state, i18n.locale);
-  for (const el of document.querySelectorAll("[data-game-leaderboard]")) {
-    const label = leaderboardMessages(i18n.locale)[
-      el.id === "hud-leaderboard" ? "shortTitle" : "title"
-    ];
-    el.textContent = label;
-    el.title = label;
-    el.setAttribute("aria-label", label);
-  }
+
   for (const el of document.querySelectorAll("[data-game-account-summary]"))
     el.textContent = gameAccountSummary(el.dataset.compact === "true");
   for (const el of document.querySelectorAll("[data-game-account-manage]"))
@@ -546265,7 +545471,6 @@ accountSession.subscribe((session) => {
   observeBackupPrompt();
   if (cloudPanel) queueMicrotask(() => cloudPanel.refresh());
 });
-
 
 let postAuthCloudTask = null;
 async function completeGameSignIn(source = "cloud_panel") {
@@ -546471,218 +545676,6 @@ function cloudAccountWindow(source = "cloud_panel") {
   });
   cleanup.observe(document.getElementById("windows"), { childList: true });
 }
-function gameLeaderboardWindow() {
-  cancelControl();
-  closeNPC();
-  const m = leaderboardMessages(i18n.locale),
-    w = makeWindow("leaderboard", m.title, "leaderboard-window");
-  const toolbar = document.createElement("div");
-  toolbar.className = "game-lb-toolbar";
-  const tabs = document.createElement("nav");
-  tabs.className = "game-lb-tabs";
-  tabs.setAttribute("aria-label", m.title);
-  let selectedBoard = "all";
-  for (const key of ["all", "Warrior", "Wizard", "Taoist"]) {
-    const tab = document.createElement("button");
-    tab.type = "button";
-    tab.textContent = m[key];
-    tab.dataset.board = key;
-    tab.setAttribute("aria-pressed", String(key === selectedBoard));
-    tab.onclick = () => {
-      selectedBoard = key;
-      for (const el of tabs.children) el.setAttribute("aria-pressed", String(el === tab));
-      load();
-    };
-    tabs.append(tab);
-  }
-  const refresh = document.createElement("button");
-  refresh.type = "button";
-  refresh.textContent = m.refresh;
-  refresh.className = "game-lb-refresh";
-  toolbar.append(tabs, refresh);
-  const mine = document.createElement("p");
-  mine.className = "game-lb-mine";
-  const status = document.createElement("p");
-  status.className = "game-lb-status";
-  status.setAttribute("role", "status");
-  const scroll = document.createElement("div");
-  scroll.className = "game-lb-scroll";
-  const table = document.createElement("table");
-  table.className = "game-lb-table";
-  table.setAttribute("aria-label", m.title);
-  const head = table.createTHead().insertRow();
-  for (const key of ["rank", "name", "job", "level", "xp"]) {
-    const th = document.createElement("th");
-    th.scope = "col";
-    th.textContent = m[key];
-    head.append(th);
-  }
-  const list = table.createTBody();
-  scroll.append(table);
-  const details = document.createElement("details");
-  details.className = "game-lb-details";
-  const summary = document.createElement("summary");
-  summary.textContent = m.details;
-  const intro = document.createElement("p");
-  intro.textContent = m.rules + " " + m.disclosure;
-  const participation = document.createElement("div");
-  participation.className = "game-lb-participation";
-  const link = document.createElement("a");
-  link.textContent = m.open;
-  link.href = i18n.path("/Game/leaderboard/");
-  link.target = "_blank";
-  link.rel = "noopener";
-  details.append(summary, intro, participation, link);
-  w.body.replaceChildren(toolbar, mine, status, scroll, details);
-  let generation = 0,
-    busy = false,
-    refreshPending = false;
-  const button = (label, action) => {
-    const el = document.createElement("button");
-    el.type = "button";
-    el.textContent = label;
-    el.onclick = action;
-    participation.append(el);
-    return el;
-  };
-  const note = (value) => {
-    const el = document.createElement("p");
-    el.textContent = value;
-    participation.append(el);
-  };
-  async function request(path, data) {
-    const response = await fetch(path, {
-      method: data ? "POST" : "GET",
-      credentials: "same-origin",
-      cache: "no-store",
-      signal: AbortSignal.timeout(10000),
-      headers: {
-        "X-Backmir-Language": i18n.locale,
-        ...(data ? { "Content-Type": "application/json", "X-Backmir-Community": "1" } : {}),
-      },
-      body: data ? JSON.stringify(data) : undefined,
-    });
-    const result = await response.json();
-    if (!response.ok)
-      throw Error(
-        result.errorCode ||
-          (response.status === 401
-            ? "auth"
-            : response.status === 409
-              ? "accountChanged"
-              : "unavailable"),
-      );
-    return result;
-  }
-  async function change(enabled, owner) {
-    if (busy) return;
-    busy = true;
-    generation++;
-    w.body.querySelectorAll("button,select").forEach((el) => (el.disabled = true));
-    status.textContent = m.loading;
-    try {
-      await request("/Game/api/leaderboard/participation", {
-        enabled,
-        consentVersion: 2,
-        accountId: owner,
-      });
-      await load();
-      if (accountSession.state.user?.id === owner && w.el.isConnected)
-        status.textContent = enabled ? m.joined : m.left;
-    } catch (error) {
-      status.textContent = m[error.message] || m.unavailable;
-    } finally {
-      busy = false;
-      w.body.querySelectorAll("button,select").forEach((el) => (el.disabled = false));
-      if (refreshPending) {
-        refreshPending = false;
-        load();
-      }
-    }
-  }
-  async function load() {
-    const run = ++generation;
-    status.textContent = m.loading;
-    participation.replaceChildren();
-    try {
-      const session = await accountSession.refresh();
-      if (session.status === "unavailable") throw Error("unavailable");
-      const owner = session.user?.id;
-      const data = await request("/Game/api/leaderboard?board=" + encodeURIComponent(selectedBoard));
-      if (run !== generation || !w.el.isConnected || accountSession.state.user?.id !== owner)
-        return;
-      mine.textContent = data.mine
-        ? `${m.mine}: #${data.mine.rank} · ${data.mine.name} · ${m.level} ${data.mine.level}`
-        : data.participation?.enabled
-          ? m[data.participation.state] || m.noClass
-          : m.notJoined;
-      list.replaceChildren();
-      if (!data.signedIn || !owner) button(m.signin, cloudAccountWindow);
-      else if (!data.participation?.enabled) {
-        if (data.hasCloudSave) {
-          note(m.consent);
-          button(m.join, () => change(true, owner)).dataset.lbJoin = "";
-        } else {
-          note(m.noCloudSave);
-          button(m.cloudOpen, cloudAccountWindow);
-        }
-      } else {
-        if (data.hasCloudSave && data.participation.state === "waiting") {
-          note(m.consent);
-          button(m.join, () => change(true, owner)).dataset.lbJoin = "";
-        }
-        button(m.leave, () => change(false, owner)).dataset.lbLeave = "";
-      }
-      for (const row of data.rows) {
-        const tr = list.insertRow();
-        if (row.id === data.mine?.id) tr.className = "game-lb-self";
-        const rank = tr.insertCell();
-        rank.textContent = String(row.rank);
-        if (row.rank <= 3) rank.className = "game-lb-medal";
-        const name = tr.insertCell();
-        name.textContent = row.name;
-        name.title = row.name;
-        tr.insertCell().textContent = m[row.job];
-        tr.insertCell().textContent = String(row.level);
-        const xp = tr.insertCell(),
-          label = document.createElement("span");
-        label.textContent = row.nextXP ? Math.floor((row.xp / row.nextXP) * 100) + "%" : m.max;
-        xp.append(label);
-        if (row.nextXP) {
-          const progress = document.createElement("progress");
-          progress.max = row.nextXP;
-          progress.value = row.xp;
-          progress.setAttribute("aria-label", m.xp);
-          progress.title = row.xp + " / " + row.nextXP;
-          xp.append(progress);
-        }
-      }
-      details.open = !data.participation?.enabled && !!data.signedIn;
-      status.textContent = data.rows.length ? "" : m.empty;
-    } catch (error) {
-      if (run === generation) status.textContent = m[error.message] || m.unavailable;
-    }
-  }
-  let identity = accountSession.state.status + ":" + (accountSession.state.user?.id || "");
-  const unsubscribe = accountSession.subscribe((session) => {
-    if (!w.el.isConnected) {
-      queueMicrotask(() => unsubscribe());
-      return;
-    }
-    const key = session.status + ":" + (session.user?.id || "");
-    if (key === identity) return;
-    identity = key;
-    generation++;
-    participation.replaceChildren();
-    mine.textContent = "";
-    if (busy) refreshPending = true;
-    else queueMicrotask(load);
-  });
-  refresh.onclick = load;
-  load();
-}
-
-
 
 let entryBusy = false,
   entryRole = 0,
@@ -546910,27 +545903,6 @@ function beginIdentification() {
   say(i18n.t("gear.identificationRetired"));
 }
 
-function mobileShareEquipment(uid, ownerId) {
-  const me = state?.me;
-  if (!me || me.id !== ownerId) return;
-  const item = [...me.inventory, ...me.equipment].find((item) => item?.uid === uid);
-  if (item && equipmentShareable(item)) return shareEquipment(item);
-}
-async function mobileShareCharacter(ownerId) {
-  if (!state?.me || state.me.id !== ownerId) return;
-  const existing = $("#win-character");
-  if (existing?.querySelector(".char-layout")) return shareCharacter();
-  openWindow("character", true);
-  const created = $("#win-character");
-  try {
-    // shareCharacter clones the native layout synchronously, then repaints the
-    // fixed-size paperdoll on the mounted card before rasterizing it. A hidden
-    // M2 native window is never itself measured or captured as the share image.
-    return await shareCharacter();
-  } finally {
-    if (created?.isConnected && $("#win-character") === created) created.remove();
-  }
-}
 async function drawPetPortrait(canvas, pet) {
   const binding = compat.monsterBindings[pet.art],
     pose = binding?.actions.stand;
@@ -547044,9 +546016,7 @@ async function bootMobile() {
     bindQuickItem,
     lockable: (item) => equipmentLockable(item, items.get(item?.id)),
     locked: equipmentLocked,
-    shareable: equipmentShareable,
-    shareEquipment: mobileShareEquipment,
-    shareCharacter: mobileShareCharacter,
+
     freeSlot: (item) => freeInventorySlot(state.me, item),
     itemMode: () => itemMode,
     use: useItem,
@@ -547075,8 +546045,6 @@ async function bootMobile() {
     },
   });
 }
-
-
 
 function drawBagTicketGround(p) {
   if (!bagTicketArt.complete || !bagTicketArt.naturalWidth) return null;
@@ -547203,7 +546171,7 @@ function layoutCompactSystemMenu(w) {
     "#select-character",
     "#game-display",
     "#game-fullscreen",
-    "[data-game-leaderboard]",
+
     "#official-system-help",
   ])
     move(selector, actions);

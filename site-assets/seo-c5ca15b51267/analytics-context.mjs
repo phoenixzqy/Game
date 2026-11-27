@@ -44,8 +44,6 @@ export function analyticsContext(win, doc) {
           ? "community"
           : /^\/(?:guide|games\/[^/]+\/guides)\//.test(path)
             ? "guide"
-            : path.startsWith("/Game/leaderboard/")
-              ? "leaderboard"
               : path.startsWith("/Game/account/")
                 ? "account"
                 : "other_internal";
@@ -124,7 +122,6 @@ export const contextValues = {
     "game",
     "community",
     "guide",
-    "leaderboard",
     "account",
     "other_internal",
     "backup_prompt",

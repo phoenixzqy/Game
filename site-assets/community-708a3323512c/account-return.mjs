@@ -1,4 +1,4 @@
-// Account language links preserve the selected public discussion/leaderboard
+// Account language links preserve the selected public discussion
 // or game entry. This helper never reads game state or account identifiers.
 export function localizedAccountReturn(value, locale = "zh-CN") {
   const lang = ["zh-CN", "en", "es"].includes(locale) ? locale : "zh-CN",
@@ -15,7 +15,7 @@ export function localizedAccountReturn(value, locale = "zh-CN") {
       path = url.pathname.replace(/^\/(?:en|es)(?=\/)/, "");
     if (
       url.origin !== "https://backmir.invalid" ||
-      !/(?<=^\/Game)\/(?:community|play|leaderboard)\//.test(path)
+      !/(?<=^\/Game)\/(?:community|play)\//.test(path)
     )
       return prefix + "/community/";
     url.pathname = path.startsWith("/Game/play/") ? path : prefix + path;

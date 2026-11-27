@@ -124,8 +124,6 @@ button:hover{filter:brightness(1.12)}
 .cloud-window .cloud-login label{display:block;margin:12px 0}.cloud-window input{display:block;width:100%;box-sizing:border-box;margin-top:5px}.cloud-confirm p{white-space:pre-line;line-height:1.7}.cloud-confirm:empty{display:none}.cloud-confirm{border:1px solid #6b6551;padding:10px}.cloud-window [role="status"]{color:#e4ce8a}.cloud-window button{margin:4px 3px}.entry-actions{flex-wrap:wrap}
 .map-quest-targets{display:flex;flex-wrap:wrap;gap:4px;max-height:90px;overflow:auto}.map-quest-target{color:#f7e087;border-color:#8f804c;font-size:12px;padding:4px 8px}
 
-
-
 /* Text controls use the original system skin. Icon controls inherit no hover image. */
 .system-window .body>button{display:block;width:max-content;max-width:100%;min-width:110px;margin:10px auto}
 .map-exits .map-exit{display:inline-block;width:auto;max-width:100%;margin:3px 4px 3px 0}
@@ -186,9 +184,7 @@ html:not(:lang(zh-CN)) .buff-effect[data-buff="WorldFirework"] img{display:block
 /* Shared corner utilities keep the established native button artwork. */
 #utility-actions{position:absolute;right:12px;bottom:28px;display:flex;gap:5px;z-index:12}
 :root #utility-actions>button{position:static;inset:auto;width:auto;min-width:66px;height:34px;padding:4px 12px;border:1px solid #756649;border-radius:0;background:#171817 url('/Game/play/classic-hell/assets/common-ui/button-normal.webp') center/100% 100%;color:#e8d49a;font:14px SimSun,"Songti SC",serif;transform:none}
-#stage:has(#entry:not([hidden])) #utility-actions{display:none}
-
-#utility-actions #hud-leaderboard{order:0}#utility-actions .forge-launch{order:1}#utility-actions #assist-launch{order:2}
+#stage:has(#entry:not([hidden])) #utility-actions{display:none}#utility-actions .forge-launch{order:1}#utility-actions #assist-launch{order:2}
 
 /* Travel posts group their options without changing other NPC dialogues. */
 .npc-window.station-dialog{width:600px;max-width:calc(100vw - 60px)}
@@ -199,11 +195,6 @@ html:not(:lang(zh-CN)) .buff-effect[data-buff="WorldFirework"] img{display:block
 @media(max-width:700px){.station-choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .cube-quest-picker{margin:8px 0}.cube-quest-picker>p{font-size:12px;color:#e5d09e;margin:5px 0}.cube-quest-materials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;max-height:174px;overflow:auto}.cube-quest-material{display:flex;align-items:center;gap:4px;min-height:44px;padding:3px;text-align:left;white-space:normal;font-size:11px}.cube-quest-material canvas{flex-shrink:0}.cube-quest-material span{min-width:0}.cube-quest-material small{display:block;color:#d8cdb1}.cube-quest-material.selected{border-color:#e2c47b;color:#ffe6a1;background:#393326}
-
-/* Share exports reuse the native equipment details without a scene backdrop. */
-.equipment-share-dialog{position:fixed;inset:0;z-index:100000;background:#000b;display:grid;place-items:center;padding:16px;font:15px/1.45 "Songti SC",SimSun,serif;color:#eee}.equipment-share-dialog[hidden]{display:none}.equipment-share-panel{width:max-content;max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;background:#11180f;border:1px solid #8c8158;box-shadow:0 12px 60px #000b;padding:12px 16px}.equipment-share-toolbar{display:flex;justify-content:space-between;gap:24px;align-items:center;margin-bottom:10px;flex:none}.equipment-share-toolbar h2{font-size:19px;color:#e4d6ad;margin:0}.equipment-share-toolbar button{font:25px/1 Arial;padding:0 8px;background:none;border:0;color:#d5c79e}.equipment-share-preview{overflow:auto;min-height:100px;max-height:calc(100dvh - 230px);max-width:calc(100vw - 68px);padding:3px;flex:1}.equipment-share-output{display:block;max-width:none;height:auto}.equipment-share-status{margin:10px 0 7px;max-width:700px;overflow-wrap:anywhere;color:#e3d8b8;font-size:14px}.equipment-share-actions{display:flex;flex-wrap:wrap;gap:8px;flex:none}.equipment-share-actions button,.equipment-share-actions a,.equipment-share-resume,.character-share-button{font:15px/1.4 "Songti SC",SimSun,serif;background:linear-gradient(#30382b,#172014);border:1px solid #8c8158;color:#efe4bf;padding:6px 12px;cursor:pointer;text-decoration:none}.equipment-share-actions :disabled{opacity:.45;cursor:wait}.equipment-share-note{font-size:12px;color:#a8a58e;margin:8px 0 0;max-width:700px}.equipment-share-resume{position:fixed;top:12px;right:12px;z-index:100001}.equipment-share-resume[hidden],.equipment-share-actions [hidden]{display:none}.character-share-button{display:block;margin:8px auto}
-.equipment-share-card{width:500px;flex:none;text-size-adjust:none;-webkit-text-size-adjust:none;padding:18px 22px 14px;background:#081008;border:1px solid #8c8158;box-sizing:border-box;color:#eee;font:21px/1.45 "Songti SC",SimSun,serif;overflow-wrap:anywhere}.equipment-share-identity{white-space:nowrap;word-break:normal;overflow-wrap:normal;border-bottom:1px solid #4c4938;padding-bottom:13px;margin-bottom:13px;color:#bbb493}.equipment-share-brand{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:10px}.equipment-share-game{flex:0 0 auto;font-size:32px;font-weight:900;line-height:1.2;letter-spacing:4px;background:linear-gradient(#fff2c7 8%,#c8ad73 53%,#927b45 57%,#ead39c 94%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 1px 1px #c1a77322}.equipment-share-edition{font-size:14px;letter-spacing:2px;color:#c9b987;border:1px solid #6b6042;padding:3px 8px;flex:none}.equipment-share-player{display:flex;align-items:center;gap:12px;padding:7px 12px;border-left:2px solid var(--share-quality,#b6a375);background:linear-gradient(90deg,#c9bc8a12,transparent)}.equipment-share-player small{font-size:14px;color:#aaa58e;letter-spacing:2px;flex:none}.equipment-share-player strong{flex:0 0 auto;font-size:23px;font-weight:600;color:#f1e5c2;letter-spacing:2px;line-height:1.2}.equipment-share-heading{display:flex;align-items:center;gap:14px;margin-bottom:8px;min-height:61px}.equipment-share-icon{width:58px;height:58px;flex:none;border:1px solid var(--share-quality,#8c8158);background:#11170d;image-rendering:pixelated}.equipment-share-heading b{font-size:25px;line-height:1.3;display:block;margin:0 0 5px}.equipment-share-card .classic-item{font:21px/1.45 "Songti SC",SimSun,serif}.equipment-share-card .equipment-tooltip{min-width:0;max-width:none;line-height:1.45}.equipment-share-card .native-stars{font-size:23px;letter-spacing:2px;color:#ffe06b}.equipment-share-card .native-item-meta{font-size:17px;gap:3px 12px;margin-top:8px}.equipment-share-card .native-item-section{margin-top:11px;padding-top:9px;border-top:1px solid #4c4938}.equipment-share-card .native-section-title{font-size:20px;margin-bottom:4px}.equipment-share-card .native-set-bonus{font-size:18px;line-height:1.6}.equipment-share-footer{display:flex;justify-content:space-between;margin-top:16px;padding-top:9px;border-top:1px solid #4c4938;font-size:14px;color:#8e8e76}
-
 
 /* Equipment operations stay in the title bar; slot corners show state only. */
 .has-equipment-management>h2{padding-right:130px;letter-spacing:2px;min-height:18px}
@@ -228,9 +219,6 @@ html:not(:lang(zh-CN)) .buff-effect[data-buff="WorldFirework"] img{display:block
 .equipment-sale-note{font-size:11px;color:#a99f87;margin:6px 0}
 .equipment-sale-actions{display:flex;justify-content:flex-end;gap:8px}
 .equipment-sale-actions button{padding:4px 12px}
-
-/* Sharing uses the bundled face, including nested native equipment details. */
-.equipment-share-card,.equipment-share-card *{font-family:"BackMir Share Sans",sans-serif!important}
 
 .storage-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px}.storage-toolbar .money{margin-left:auto}.storage-toolbar button{white-space:nowrap}
 

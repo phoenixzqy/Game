@@ -1,4 +1,4 @@
-const CACHE = "backmir-darkforged-pages-84220e6a02ac0a30";
+const CACHE = "backmir-darkforged-pages-8eba8839d999a47d";
 const OFFLINE_ASSETS = (function createOfflineAssets({
   storage = globalThis.caches,
   baseURL = globalThis.location?.href,
@@ -217,7 +217,7 @@ const LANGUAGE_ASSETS = {
       "/Game/play/darkforged/locales/zh-CN/game-messages.9ba6b13b393a6178.json",
       "/Game/play/darkforged/locales/zh-CN/game-quests.87eb5d5e63d84893.json",
       "/Game/play/darkforged/locales/zh-CN/game-recipes.7826b3cdeccdda96.json",
-      "/Game/play/darkforged/locales/zh-CN/game-share.da77fbbe26af133c.json",
+
       "/Game/play/darkforged/locales/zh-CN/game-site.b8170e4619ec43a2.json",
       "/Game/play/darkforged/locales/zh-CN/game-skill-effects.baff5915de4885e3.json",
       "/Game/play/darkforged/locales/zh-CN/game-skills.11bf0ec99ee0fc79.json",
@@ -278,7 +278,7 @@ const LANGUAGE_ASSETS = {
       "/Game/play/darkforged/locales/en/game-messages.fcfcd33ddee3a7fc.json",
       "/Game/play/darkforged/locales/en/game-quests.255a3a30bd7b650d.json",
       "/Game/play/darkforged/locales/en/game-recipes.0871b04f4f361254.json",
-      "/Game/play/darkforged/locales/en/game-share.07422e4a1e28a95c.json",
+
       "/Game/play/darkforged/locales/en/game-site.e94c02182a390a3d.json",
       "/Game/play/darkforged/locales/en/game-skill-effects.c62afb3d96c702cf.json",
       "/Game/play/darkforged/locales/en/game-skills.88e87dc8fd9e0203.json",
@@ -339,7 +339,7 @@ const LANGUAGE_ASSETS = {
       "/Game/play/darkforged/locales/es/game-messages.c2df1f609c9a7dc4.json",
       "/Game/play/darkforged/locales/es/game-quests.b624560d90013b95.json",
       "/Game/play/darkforged/locales/es/game-recipes.fd3186a2b30582f2.json",
-      "/Game/play/darkforged/locales/es/game-share.f7c2074abdcf043a.json",
+
       "/Game/play/darkforged/locales/es/game-site.ecafc152b8e564ba.json",
       "/Game/play/darkforged/locales/es/game-skill-effects.afffed6995b942a4.json",
       "/Game/play/darkforged/locales/es/game-skills.c5544b0876c0d5d8.json",
@@ -375,7 +375,7 @@ const LANGUAGE_ASSETS = {
     "./cloud/cloud-save-i18n.mjs",
     "./cloud/cloud-save-panel.mjs",
     "./cloud/game-save-sync.mjs",
-    "./cloud/leaderboard-i18n.mjs",
+
     "./cloud/darkforged-account-client.mjs",
     "./cloud/game.css",
     "./assets/share-font/backmir-share-sans.6a1acde9f42c8475.woff2",

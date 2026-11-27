@@ -2,15 +2,6 @@
 (() => {
   window.backmirAnalyticsDisabled = true;
   window.gtag = () => {};
-  document.addEventListener('click', event => {
-    if (!event.target.closest('[data-game-leaderboard]')) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    const game = location.pathname.includes('/classic-hell/') ? 'classic-hell' : location.pathname.includes('/darkforged/') ? 'darkforged' : 'classic';
-    const lang = document.documentElement.lang;
-    const prefix = "/Game"+(lang.startsWith('en') ? '/en' : lang.startsWith('es') ? '/es' : '');
-    window.open(prefix + '/leaderboard/?game=' + game, '_blank', 'noopener');
-  }, true);
   const excluded = /(?<=^\/Game)\/(?:en\/|es\/)?(?:games\/[^/]+\/)?(?:community|account|login|register|auth)(?:\/|$)/;
   const clean = () => {
     for (const link of document.querySelectorAll('a[href]')) {

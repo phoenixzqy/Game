@@ -68,7 +68,7 @@ function nextPath() {
   const next = new URLSearchParams(location.search).get("next");
   if (
     next &&
-    /(?<=^\/Game)\/(?:en\/|es\/)?(?:community\/|play\/|leaderboard\/)/.test(next) &&
+    /(?<=^\/Game)\/(?:en\/|es\/)?(?:community\/|play\/)/.test(next) &&
     !/[\\\r\n]/.test(next)
   )
     return next;
@@ -294,20 +294,7 @@ document.addEventListener("click", async (event) => {
         b.textContent = result.bookmarked ? m.bookmarked : m.bookmark;
       else b.querySelector("span").textContent = result.likes;
     }
-    if (b.dataset.share) {
-      const url = new URL(b.dataset.share, location.origin).href;
-      try {
-        if (navigator.share) await navigator.share({ title: document.title, url });
-        else {
-          await navigator.clipboard.writeText(url);
-          show(m.linkCopied);
-        }
-      } catch (error) {
-        if (error.name !== "AbortError") {
-          prompt(m.copyLink, url);
-        }
-      }
-    }
+
     if (b.dataset.moreReplies) {
       if (b.disabled) return;
       b.disabled = true;
