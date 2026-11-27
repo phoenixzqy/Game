@@ -1,11 +1,11 @@
 import { GistClient, CONFIG_KEY, GistError } from './gist-client.mjs';
-export const GIST_AUTO_INTERVAL = 20_000;
+export const GIST_AUTO_INTERVAL = 60_000;
 
 const messages = {
   'zh-CN': {
     title: 'GitHub 云存档', token: 'GitHub Token', gist: 'Gist ID（可选，留空自动查找或创建）',
     help: '在 GitHub 设置 → Developer settings → Personal access tokens 创建 token：classic 勾选 gist，或 fine-grained 开启 Gists 读写。无需仓库权限。Token 保存在此浏览器，直到删除或替换。',
-    save: '保存 / 替换 Token', forget: '删除 Token', auto: '自动备份（每 20 秒检查，进度变化时上传）',
+    save: '保存 / 替换 Token', forget: '删除 Token', auto: '自动备份（每 1 分钟检查，进度变化时上传）',
     countdown: '将在 {seconds} 秒后自动同步', autoOff: '自动同步已关闭', autoOffline: '离线，联网后自动同步',
     autoHidden: '后台等待中，返回游戏后自动同步', autoPaused: '自动同步已暂停，请检查上方错误提示', autoWaiting: '等待启动同步',
     sync: '立即同步', backup: '下载本地备份', local: '本地存档时间（UTC）', cloud: '云端存档时间（UTC）',
@@ -27,7 +27,7 @@ const messages = {
   en: {
     title: 'GitHub cloud saves', token: 'GitHub Token', gist: 'Gist ID (optional; discover or create automatically)',
     help: 'Create a token in GitHub Settings → Developer settings → Personal access tokens: select gist for classic tokens, or Gists read/write for fine-grained tokens. No repository permission needed. This browser keeps the token until you delete or replace it.',
-    save: 'Save / replace token', forget: 'Delete token', auto: 'Auto backup (check every 20 seconds; upload changed progress)',
+    save: 'Save / replace token', forget: 'Delete token', auto: 'Auto backup (check every minute; upload changed progress)',
     countdown: 'Automatic sync in {seconds} seconds', autoOff: 'Automatic sync is off', autoOffline: 'Offline; automatic sync resumes online',
     autoHidden: 'Waiting in background; automatic sync resumes when visible', autoPaused: 'Automatic sync paused; check the error above', autoWaiting: 'Waiting for startup sync',
     sync: 'Sync now', backup: 'Download local backup', local: 'Local save time (UTC)', cloud: 'Cloud save time (UTC)',
@@ -48,7 +48,7 @@ const messages = {
   es: {
     title: 'Partidas en GitHub', token: 'Token de GitHub', gist: 'Gist ID (opcional; buscar o crear automáticamente)',
     help: 'Crea un token en GitHub Settings → Developer settings → Personal access tokens: gist para classic, o Gists con lectura/escritura para fine-grained. No requiere permisos de repositorio. El navegador guarda el token hasta que lo borres o reemplaces.',
-    save: 'Guardar / reemplazar token', forget: 'Borrar token', auto: 'Copia automática (comprobar cada 20 segundos; subir solo cambios)',
+    save: 'Guardar / reemplazar token', forget: 'Borrar token', auto: 'Copia automática (comprobar cada minuto; subir solo cambios)',
     countdown: 'Sincronización automática en {seconds} segundos', autoOff: 'Sincronización automática desactivada', autoOffline: 'Sin conexión; se sincronizará al reconectar',
     autoHidden: 'En segundo plano; se sincronizará al volver', autoPaused: 'Sincronización pausada; revisa el error anterior', autoWaiting: 'Esperando la sincronización inicial',
     sync: 'Sincronizar ahora', backup: 'Descargar copia local', local: 'Fecha local (UTC)', cloud: 'Fecha en la nube (UTC)',
