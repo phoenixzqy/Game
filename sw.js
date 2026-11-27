@@ -1,4 +1,4 @@
-const CACHE = "backmir-classic-pages-8eba8839d999a47d";
+const CACHE = "backmir-classic-pages-6ad5d1da75f4335f";
 const OFFLINE_ASSETS = (function createOfflineAssets({
   storage = globalThis.caches,
   baseURL = globalThis.location?.href,
@@ -339,11 +339,6 @@ const LANGUAGE_ASSETS = {
     "/Game/site-assets/game-update.mjs",
     "/Game/site-assets/gist-client.mjs",
     "/Game/site-assets/gist-cloud.mjs",
-    "/Game/assets/webp-codec/encode.js",
-    "/Game/assets/webp-codec/encode-worker.js",
-    "/Game/assets/webp-codec/meta.js",
-    "/Game/assets/webp-codec/webp_enc.js",
-    "/Game/assets/webp-codec/webp_enc.wasm",
     "/Game/play/",
     "/Game/site-assets/game-offline-warm.mjs",
     "/Game/style.css",

@@ -1,4 +1,4 @@
-const CACHE = "backmir-darkforged-pages-8eba8839d999a47d";
+const CACHE = "backmir-darkforged-pages-6ad5d1da75f4335f";
 const OFFLINE_ASSETS = (function createOfflineAssets({
   storage = globalThis.caches,
   baseURL = globalThis.location?.href,
@@ -378,18 +378,12 @@ const LANGUAGE_ASSETS = {
 
     "./cloud/darkforged-account-client.mjs",
     "./cloud/game.css",
-    "./assets/share-font/backmir-share-sans.6a1acde9f42c8475.woff2",
     "./",
     "./index.html",
     "./style.css",
     "./update.html",
     "./offline-manifest.json",
     "./locales/manifest.json",
-    "./assets/webp-codec/encode.js",
-    "./assets/webp-codec/encode-worker.js",
-    "./assets/webp-codec/meta.js",
-    "./assets/webp-codec/webp_enc.js",
-    "./assets/webp-codec/webp_enc.wasm",
     "./actor-picking.js",
     "./character-panel.js",
     "./client.js",
