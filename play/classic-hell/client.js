@@ -473,7 +473,7 @@ function updateDesktopDisplayReadout() {
 }
 function openDesktopDisplay() {
   if (!desktopDisplay) return;
-  cancelControl();
+  pauseControl();
   closeWindow("system");
   const t = desktopDisplayCopy(),
     w = makeWindow("display", t.title, "system-window display-window");
@@ -615,7 +615,7 @@ function openMonsterAffixes(id) {
     (a) => a.id === id && a.kind === "monster" && !a.friendly && !a.dead,
   );
   if (!hellMode || !a?.monsterAffixes?.length) return;
-  if (!mobileMode) cancelControl();
+  if (!mobileMode) pauseControl();
   const w = makeWindow("monster-affixes", monsterAffixCopy().title, "assist-window");
   const name = document.createElement("b");
   name.textContent = actorSceneName(a);
@@ -1281,7 +1281,7 @@ function mountOfficialGameAccess(root) {
   else root.append(button);
 }
 function officialGameAccessWindow() {
-  cancelControl();
+  pauseControl();
   installOfficialAccessStyles();
   const t = officialAccessCopy(),
     config = officialGameAccessConfig(),
@@ -2499,7 +2499,7 @@ async function leaveCharacter() {
 }
 
 function systemMenu() {
-  cancelControl();
+  pauseControl();
   const w = makeWindow("system", i18n.t("system.title"), "system-window");
   w.body.innerHTML = `${gameAccountMarkup()}<p id="game-version"></p><a class="site-system-guide" href="${esc(i18n.path("/Game/games/classic-hell/guides/"))}" target="_blank" rel="noopener">${esc(i18n.t("site.game.guide"))}</a><button id="save-game">${esc(cloudMessages(i18n.locale).saveLocal)}</button><button id="force-update">${esc(i18n.t("system.update"))}</button><button id="cloud-account">${esc(gistCloudMessages(i18n.locale).title)}</button><button id="select-character">${esc(i18n.t("system.characters"))}</button><button id="offline-download">${esc(i18n.t("system.offline"))}</button><p id="offline-progress" role="status"></p><small data-focus-preference-hint>${esc(i18n.t("system.background"))}</small>`;
   audio().mount(w.body);
@@ -2587,7 +2587,7 @@ function resize() {
       )
     : { w: 1280, h: 768, scale: Math.min(1, innerWidth / 1280, innerHeight / 768) };
   if (screen.w !== view.w || screen.h !== view.h) {
-    if (screen.w) cancelControl();
+    if (screen.w) pauseControl();
   }
   screen = { w: view.w, h: view.h };
   if (canvas.width !== view.w) canvas.width = view.w;
@@ -2970,7 +2970,7 @@ function actor(a, now, isMe) {
   if (a.kind === "monster") {
     let art;
     const spirit = a.friendly && a.name === "SpiritServant",
-      scale = spirit ? 0.75 : 1,
+      scale = spirit || (a.special?.nativeBeastArmourRank && a.name === "SacredBeastGuard") ? 0.75 : 1,
       baseline = -48 * scale;
     const b = compat.monsterBindings[a.art];
     if (b) {
@@ -3080,10 +3080,15 @@ function go(goal, quiet = false) {
   }
   return true;
 }
-function cancelControl() {
-  mobile?.clear();
-  adventureDestination = null;
-  navigationGoal = null;
+function pauseControl() {
+  cancelControl({ journey: false });
+}
+function cancelControl({ journey = true } = {}) {
+  mobile?.clear({ journey });
+  if (journey) {
+    adventureDestination = null;
+    navigationGoal = null;
+  }
   navigationBlockedAt = 0;
   path = [];
   auto = false;
@@ -4028,7 +4033,7 @@ function skillWindow() {
   w.body.querySelectorAll("[data-bind]").forEach(
     (b) =>
       (b.onclick = () => {
-        cancelControl();
+        pauseControl();
         bindingSpell = b.dataset.bind;
         say(i18n.t("ui.a083a3996ee3"));
       }),
@@ -4613,7 +4618,7 @@ function questDetails(q, id, finish) {
     };
 }
 let storageBusy = false;
-let activeSharedStorage = false;
+let activeSharedStorage = false, activeSharedStoragePage = 0;
 function displayedStorage() {
   return hellMode && activeSharedStorage ? state.sharedStorage : state.me.storage;
 }
@@ -4631,8 +4636,8 @@ async function transferStorage(type, from, uid) {
       ? dst.findIndex(
           (v, i) =>
             !v &&
-            i >= (activeSharedStorage ? 0 : activeStoragePage) * 80 &&
-            i < ((activeSharedStorage ? 0 : activeStoragePage) + 1) * 80,
+            i >= (activeSharedStorage ? activeSharedStoragePage : activeStoragePage) * 80 &&
+            i < ((activeSharedStorage ? activeSharedStoragePage : activeStoragePage) + 1) * 80,
         )
       : freeInventorySlot(state.me, src[from]);
   if (to < 0) {
@@ -4673,7 +4678,7 @@ function storageWindow() {
   const slots = displayedStorage();
   w.body.innerHTML = `<div class="storage-toolbar"><button id="storage-sort">${esc(i18n.t("storage.sort"))}</button><div class="money">${esc(i18n.t("storage.used", { used: slots.filter(Boolean).length, total: slots.length }))}</div></div><div class="bag-grid storage-grid" style="height:${10 * 41 + 4}px"></div><div class="item-details">${esc(i18n.t(activeSharedStorage ? "storage.sharedHint" : "storage.hint"))}</div>`;
   prepareStorageTabs(w, state.me);
-  const page = activeSharedStorage ? 0 : activeStoragePage;
+  const page = activeSharedStorage ? activeSharedStoragePage : activeStoragePage;
 
   const sort = w.body.querySelector("#storage-sort");
   sort.disabled = storageBusy;
@@ -4838,7 +4843,7 @@ async function boot() {
     renderRoles();
   };
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) cancelControl();
+    if (document.hidden) pauseControl();
   });
   document.addEventListener("save-error", (e) => {
     say(e.detail);
@@ -4905,7 +4910,7 @@ async function boot() {
       }
       if (e.ctrlKey && code === "KeyR" && !e.target.matches("input,select")) {
         e.preventDefault();
-        cancelControl();
+        pauseControl();
         command("ToggleMount");
         return;
       }
@@ -4941,7 +4946,7 @@ async function boot() {
       if (code === "Escape") {
         e.preventDefault();
         document.activeElement?.blur();
-        cancelControl();
+        pauseControl();
         const top = [...$("#windows").querySelectorAll(".window")].filter((w) => !w.hidden).at(-1);
         $("#tip").hidden = true;
         if (top) closeWindow(top.id.slice(4));
@@ -6154,7 +6159,7 @@ async function openEquipmentShareSnapshot({
   ready.catch(() => {});
   if (!card) return;
   document.getElementById("equipment-share-dialog")?.querySelector("[data-share-close]")?.click();
-  cancelControl();
+  pauseControl();
   if (typeof cancelBagCarry === "function") cancelBagCarry();
   $("#tip").hidden = true;
   const snapshot = {
@@ -6564,7 +6569,7 @@ function drawQuestMarker(a, p) {
 function skillDetails(spell, mount) {
   const s = state.me.skills.find((s) => s.Spell === spell);
   if (!s) return;
-  cancelControl();
+  pauseControl();
   const d = s.Info,
     me = state.me,
     effective = s.EffectiveLevel ?? s.Level,
@@ -537683,7 +537688,7 @@ if (!mobileMode)
     (e) => {
       if (
         !e.target.matches("input,textarea,select") &&
-        (e.code === "Escape" || e.code === "KeyF" || e.code === "Space" || /^F[1-8]$/.test(e.code))
+        (e.code === "Space" || /^F[1-8]$/.test(e.code))
       )
         adventureDestination = null;
     },
@@ -537941,24 +537946,38 @@ function prepareStorageTabs(w, me) {
     nav.append(button);
   }
   if (hellMode) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.storageScope = "shared";
-    button.setAttribute("role", "tab");
-    button.setAttribute("aria-selected", String(activeSharedStorage));
-    button.textContent = i18n.t("storage.shared");
-    button.onclick = () => {
-      if (storageBusy) return;
-      activeSharedStorage = true;
-      storageWindow();
-    };
-    nav.append(button);
+    const sharedPages = state.sharedStoragePages || 1;
+    activeSharedStoragePage = Math.max(0, Math.min(activeSharedStoragePage, sharedPages - 1));
+    nav.style.flexWrap = "wrap";
+    for (let page = 1; page <= 3; page++) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.storageScope = "shared";
+      button.dataset.sharedStoragePage = page;
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-selected", String(activeSharedStorage && activeSharedStoragePage === page - 1));
+      button.textContent = i18n.t("storage.shared") + " · " + i18n.t("storage.page", { page }) +
+        (page > sharedPages ? " 🔒" : "");
+      button.title = page > sharedPages
+        ? i18n.t("storage.unlockCost", { gold: i18n.number(page === 2 ? 500000 : 1000000) })
+        : button.textContent;
+      button.onclick = () => {
+        if (storageBusy) return;
+        if (page <= sharedPages) {
+          activeSharedStorage = true;
+          activeSharedStoragePage = page - 1;
+          storageWindow();
+        } else if (page !== sharedPages + 1) say(i18n.t("storage.unlockOrder"));
+        else confirmStorageUnlock(page, true);
+      };
+      nav.append(button);
+    }
   }
   w.body.prepend(nav);
 }
-function confirmStorageUnlock(page) {
+function confirmStorageUnlock(page, shared = false) {
   const price = page === 2 ? 500000 : 1000000,
-    w = makeWindow("storage-unlock", i18n.t("storage.unlockTitle"), "npc-window");
+    w = makeWindow("storage-unlock", (shared ? i18n.t("storage.shared") + " · " : "") + i18n.t("storage.unlockTitle"), "npc-window");
   w.body.innerHTML =
     "<p>" +
     esc(i18n.t("storage.unlockConfirm", { page, gold: i18n.number(price) })) +
@@ -537976,9 +537995,10 @@ function confirmStorageUnlock(page) {
     storageBusy = true;
     confirm.disabled = true;
     try {
-      if (await command("UnlockStoragePage", { Page: page })) {
-        activeSharedStorage = false;
-        activeStoragePage = page - 1;
+      if (await command("UnlockStoragePage", { Page: page, Shared: shared })) {
+        activeSharedStorage = shared;
+        if (shared) activeSharedStoragePage = page - 1;
+        else activeStoragePage = page - 1;
         w.el.remove();
         storageWindow();
       }
@@ -538126,7 +538146,7 @@ function setupEquipmentManagement(w, kind) {
     button.textContent = managementText(mode);
     button.onclick = () => {
       if (equipmentManagement?.busy) return;
-      cancelControl();
+      pauseControl();
       cancelBagCarry();
       resetEquipmentShareTip();
       equipmentManagement =
@@ -538291,7 +538311,7 @@ new MutationObserver(syncEquipmentManagement).observe($("#windows"), {
 function openEquipmentBulkSale() {
   if (itemMode !== "sell" || !npcId) return;
   endEquipmentManagement();
-  cancelControl();
+  pauseControl();
   const owner = state.me.id,
     epoch = state.epoch,
     seller = npcId,
@@ -538556,7 +538576,7 @@ function syncBagCarry() {
 function liftBagItem(slot, e) {
   const item = state.me.inventory[Number(slot.dataset.inventorySlot)];
   if (!item) return;
-  if (!navigationGoal) cancelControl();
+  if (!navigationGoal) pauseControl();
   carriedBagItem = { uid: item.uid, owner: state.me.id };
   const ghost = document.createElement("div");
   ghost.id = "bag-carried-item";
@@ -538740,7 +538760,7 @@ if (!mobileMode) {
 
 function openAssist() {
   if (!state.me) return;
-  cancelControl();
+  pauseControl();
   $("#tip").hidden = true;
   const cfg = {
     hpEnabled: false,
@@ -538833,8 +538853,8 @@ function nativeGroundVisible(actor) {
 function nativeSetLootQualities(values) {
   nativeLootSelection = new Set(values.filter((q) => nativeLootQualities.includes(q)));
   try { localStorage.setItem(nativeLootStorageKey, JSON.stringify([...nativeLootSelection])); } catch {}
-  cancelControl();
-  mobile?.clear();
+  pauseControl();
+  mobile?.clear({ journey: false });
   updateNativeLootIndicator();
 }
 function updateNativeLootIndicator() {
@@ -538886,8 +538906,8 @@ function renderNativeLootSettings(body) {
 }
 function openNativeLootFilter() {
   if (!state.me) return;
-  cancelControl();
-  mobile?.clear();
+  pauseControl();
+  mobile?.clear({ journey: false });
   const w = makeWindow("loot-filter", nativeLootText("title"), "assist-window");
   renderNativeLootSettings(w.body);
 }
@@ -539315,7 +539335,7 @@ function autoBattleCopy() {
 }
 function openAutoBattle() {
   if (!state?.me) return;
-  cancelControl();
+  pauseControl();
   const role = state.me,
     cfg = autoBattleSettings(role.assist?.autoBattle, items.values()),
     t = autoBattleCopy();
@@ -545114,7 +545134,7 @@ function openForge(mode = "dismantle", recipeId = null) {
     say(i18n.t("forge.closed"));
     return;
   }
-  if (!mobileMode) cancelControl();
+  if (!mobileMode) pauseControl();
   cancelBagCarry();
   setItemMode("use");
   if (!$("#win-bag")) openWindow("bag");
@@ -545766,7 +545786,7 @@ const combatTestTalismanConfig = null;
 function eventTalismanInput(data) {
   const body = $("#win-npc .body");
   if (!body || npcId !== data.NPCID || (dreamOriginalMode && !data.TestTalisman)) return;
-  cancelControl();
+  pauseControl();
   body.querySelector(".talisman-code-form")?.remove();
   const form = document.createElement("form");
   form.className = "talisman-code-form";
@@ -545819,7 +545839,7 @@ function talismanSlot(w, m) {
     tip(slot, i18n.t("event.relicHint"));
     slot.onclick = () => {
       if (blessingTalismanConfig) {
-        cancelControl();
+        pauseControl();
         openWindow("bag", true);
         return;
       }
@@ -545830,7 +545850,7 @@ function talismanSlot(w, m) {
         say(i18n.t("event.returnGuide"));
         return;
       }
-      cancelControl();
+      pauseControl();
       closeWindow("character");
       selected = 0;
       pendingInteract = { id: npc.id };
@@ -546075,7 +546095,7 @@ function updateBuffHud() {
     el.onclick = (e) => {
       e.stopPropagation();
       if (b.key === "Riding") {
-        cancelControl();
+        pauseControl();
         command("ToggleMount");
         $("#tip").hidden = true;
         return;
@@ -546590,7 +546610,7 @@ const gistCloud = createGistCloud({
   },
 });
 function cloudAccountWindow() {
-  cancelControl();
+  pauseControl();
   closeNPC();
   cloudPanel?.dispose();
   const w = makeWindow("cloud", gistCloudMessages(i18n.locale).title, "system-window cloud-window");
@@ -546608,7 +546628,7 @@ function cloudAccountWindow() {
   cleanup.observe(document.getElementById("windows"), { childList: true });
 }
 function gameLeaderboardWindow() {
-  cancelControl();
+  pauseControl();
   closeNPC();
   const m = darkLeaderboardMessages(i18n.locale),
     w = makeWindow("leaderboard", m.title, "leaderboard-window");

@@ -539098,7 +539098,7 @@ function autoBattleCopy() {
 }
 function openAutoBattle() {
   if (!state?.me) return;
-  cancelControl();
+  pauseControl();
   const role = state.me,
     cfg = autoBattleSettings(role.assist?.autoBattle, items.values()),
     t = autoBattleCopy();

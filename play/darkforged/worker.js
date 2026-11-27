@@ -616,6 +616,24 @@ function starterItem(item, rules) {
   return item;
 }
 
+// Shared capacity belongs to this game's account save, rather than one character.
+function unlockSharedStoragePage(g, r, page) {
+  if (!hasSharedStorage(g.rules)) throw new LocalizedError(message("storage.sharedOnly"));
+  const holder = { storage: g.sharedStorage, storagePages: g.sharedStoragePages || 1, gold: r.gold };
+  unlockStoragePage(holder, page);
+  g.sharedStoragePages = holder.storagePages;
+  r.gold = holder.gold;
+}
+function inheritSharedStorageCapacity(incoming, previous) {
+  if (incoming.sync?.ownerId && previous.sync?.ownerId &&
+      incoming.sync.ownerId !== previous.sync.ownerId) return;
+  const pages = Math.max(incoming.sharedStoragePages || 1, previous.sharedStoragePages || 1);
+  if (pages > (incoming.sharedStoragePages || 1)) {
+    incoming.sharedStorage.push(...Array(pages * SHARED_STORAGE_SLOTS - incoming.sharedStorage.length).fill(null));
+    incoming.sharedStoragePages = pages;
+  }
+}
+
 // games/darkforged/singleplayer/core/sun-potion.ts
 var SUN_POTION_COOLDOWN_MS = 4e3;
 function isSunPotion(d) {
@@ -1741,7 +1759,10 @@ function monsterDisplayName(actor, rules) {
   const sacred = actor.special?.nativeBeastArmourRank
     ? rules.monsters.find((m) => m.DreamOriginalId === 82)
     : void 0;
-  let base = entityText("monsters", sacred?.Index ?? actor.definition);
+  let base = actor.special?.nativeBeastArmourRank &&
+    rules.monsters.find((m) => m.Index === actor.definition)?.DreamOriginalId === 14
+    ? message("skill.sacredBeastGuard")
+    : entityText("monsters", sacred?.Index ?? actor.definition);
   affix: for (const group of Object.values(
     rules.adaptations.dreamRuntime?.monsterAffixModel?.groups || {},
   )) {
@@ -7105,14 +7126,14 @@ function castDream(g, r, d, data) {
     case "BeastArmour": {
       const pet = pets(g, r).find(
         (a) =>
-          g.monsters.get(a.definition)?.DreamOriginalId === 62 && !a.special?.nativeBeastArmourRank,
+          [14, 62].includes(g.monsters.get(a.definition)?.DreamOriginalId) && !a.special?.nativeBeastArmourRank,
       );
       if (!pet) throw new LocalizedError(message("core.dream-magic.castDream.019bf7dc80"));
       action = () => {
         pet.special ??= {};
         pet.special.nativeBeastArmourRank = l;
         pet.art = g.rules.monsters.find((m) => m.DreamOriginalId === 82)?.Image || pet.art;
-        pet.name = "\u5723\u517D";
+        pet.name = g.monsters.get(pet.definition)?.DreamOriginalId === 14 ? "SacredBeastGuard" : "\u5723\u517D";
         g.refreshActor(pet);
         g.emit("ObjectShow", { ObjectID: pet.id, Duration: 500 });
       };
@@ -9176,7 +9197,8 @@ function prepareMonster(g, a, r) {
     const active2 = Number(s.modeUntil || 0) > g.time;
     if (active2 !== !!s.mode) {
       s.mode = active2;
-      a.art = d.DreamOriginalId === 14 ? d.Image : active2 ? "Shinsu1" : "Shinsu";
+      if (!s.nativeBeastArmourRank)
+        a.art = d.DreamOriginalId === 14 ? d.Image : active2 ? "Shinsu1" : "Shinsu";
       a.actionAt = g.time + 1e3;
       g.emit(active2 ? "ObjectShow" : "ObjectHide", { ObjectID: a.id });
     }
@@ -13428,6 +13450,7 @@ var Game7 = class {
     this.rng = new Random(seed);
   }
   sharedStorage = Array(SHARED_STORAGE_SLOTS).fill(null);
+  sharedStoragePages = 1;
   defs;
   monsters;
   rng;
@@ -16541,7 +16564,10 @@ var Game7 = class {
       case "UnlockStoragePage": {
         if (this.requireNPC(r).role !== "storage")
           throw new LocalizedError(message("storage.unlockNPC"));
-        unlockStoragePage(r, Number(data.Page));
+        if (data.Shared !== void 0 && typeof data.Shared !== "boolean")
+          throw new LocalizedError(message("storage.invalidFormat"));
+        if (data.Shared) unlockSharedStoragePage(this, r, Number(data.Page));
+        else unlockStoragePage(r, Number(data.Page));
         break;
       }
       case "SortInventory": {
@@ -17331,6 +17357,7 @@ var Game7 = class {
         ? {
             sharedStorageGame: sharedStorageGame(this.rules),
             sharedStorageVersion: 1,
+            sharedStoragePages: this.sharedStoragePages,
             sharedStorage: this.sharedStorage,
           }
         : {}),
@@ -17393,6 +17420,7 @@ var Game7 = class {
         ? {
             sharedStorageGame: sharedStorageGame(this.rules),
             sharedStorageVersion: 1,
+            sharedStoragePages: this.sharedStoragePages,
             sharedStorage: this.sharedStorage,
           }
         : {}),
@@ -17407,6 +17435,7 @@ var Game7 = class {
     this.sharedStorage = hasSharedStorage(this.rules)
       ? structuredClone(save.sharedStorage ?? Array(SHARED_STORAGE_SLOTS).fill(null))
       : Array(SHARED_STORAGE_SLOTS).fill(null);
+    this.sharedStoragePages = hasSharedStorage(this.rules) ? save.sharedStoragePages || 1 : 1;
     this.maps = structuredClone(save.maps);
     this.bossRespawns = {};
     this.spreadMaps.clear();
@@ -18495,25 +18524,13 @@ function installAutoBattle(Game, api) {
       });
       return;
     }
-    if (
-      r &&
-      [
-        "Walk",
-        "Run",
-        "Attack",
-        "Magic",
-        "SpellToggle",
-        "MapTeleport",
-        "CallNPC",
-        "PickUp",
-        "PetControl",
-        "ToggleMount",
-      ].includes(type)
-    ) {
+    const result = command.call(this, type, data);
+    // Only accepted player movement/combat commands yield control to the player.
+    if (r && ["Walk", "Run", "Attack", "Magic", "MapTeleport"].includes(type)) {
       const state = autoBattleStates.get(r);
       if (state) state.pauseUntil = this.time + 1500;
     }
-    return command.call(this, type, data);
+    return result;
   };
 }
 
@@ -18752,7 +18769,7 @@ function autoBattleTaoist({ g, r, cfg, api, enemies }) {
     beast &&
     pets.some(
       (a) =>
-        g.monsters.get(a.definition)?.DreamOriginalId === 62 &&
+        [14, 62].includes(g.monsters.get(a.definition)?.DreamOriginalId) &&
         !a.special?.nativeBeastArmourRank,
     )
   )
@@ -19739,6 +19756,7 @@ function characterSave(source, rules) {
       ? {
           sharedStorageGame: sharedStorageGame(rules),
           sharedStorageVersion: 1,
+          sharedStoragePages: source.sharedStoragePages || 1,
           sharedStorage: structuredClone(source.sharedStorage ?? Array(80).fill(null)),
         }
       : {}),
@@ -20345,7 +20363,9 @@ function validateSave(value, rules) {
     )
       throw new LocalizedError(message("storage.invalidFormat"));
     if (s.sharedStorage === void 0) s.sharedStorage = Array(SHARED_STORAGE_SLOTS).fill(null);
-    if (!Array.isArray(s.sharedStorage) || s.sharedStorage.length !== SHARED_STORAGE_SLOTS)
+    s.sharedStoragePages ??= 1;
+    if (!Number.isSafeInteger(s.sharedStoragePages) || s.sharedStoragePages < 1 || s.sharedStoragePages > 3 ||
+        !Array.isArray(s.sharedStorage) || s.sharedStorage.length !== SHARED_STORAGE_SLOTS * s.sharedStoragePages)
       throw new LocalizedError(message("storage.invalidFormat"));
     for (const entry of s.sharedStorage)
       if (entry !== null) {
@@ -20357,7 +20377,8 @@ function validateSave(value, rules) {
   } else if (
     s.sharedStorage !== void 0 ||
     s.sharedStorageVersion !== void 0 ||
-    s.sharedStorageGame !== void 0
+    s.sharedStorageGame !== void 0 ||
+    s.sharedStoragePages !== void 0
   )
     throw new LocalizedError(message("storage.invalidFormat"));
   if ([...ids].some((id) => id >= s.nextId)) throw new LocalizedError(message("storage.objectId"));
@@ -20979,6 +21000,7 @@ function wholeProjection(save, roles = cloudBaseline(save?.roles || [], save?.sy
   return stringify({
     roles,
     sharedStorage: bagProgress(save.sharedStorage || []),
+    ...((save.sharedStoragePages || 1) > 1 ? { sharedStoragePages: save.sharedStoragePages } : {}),
     ...(sharedGame(save) && sharedGame(save) !== "classic-hell" ? { game: sharedGame(save) } : {}),
   });
 }
@@ -21257,6 +21279,7 @@ async function request(route, data, after) {
       : guest;
     if (remote.sync && remote.sync.ownerId !== ownerId) throw Error("accountChanged");
     inheritStorageCapacity(incoming.roles, game.roles);
+    inheritSharedStorageCapacity(incoming, game);
     const candidate = new Game7(game.rules, 1);
     candidate.restore(incoming);
     Object.assign(incoming, characterSave(candidate.save(false), game.rules));
@@ -21334,6 +21357,7 @@ async function request(route, data, after) {
     incoming.sync = metadata(data, incoming.sync);
     incoming.sync.checkpointWrittenAt = /* @__PURE__ */ new Date().toISOString();
     inheritStorageCapacity(incoming.roles, game.roles);
+    inheritSharedStorageCapacity(incoming, game);
     const candidate = new Game7(game.rules, 1);
     candidate.restore(incoming);
     Object.assign(incoming, characterSave(candidate.save(false), game.rules));
@@ -21388,6 +21412,7 @@ async function request(route, data, after) {
       data?.replacements,
     );
     inheritStorageCapacity(incoming.roles, game.roles);
+    inheritSharedStorageCapacity(incoming, game);
     const candidate = new Game7(game.rules, 1);
     candidate.restore(incoming);
     Object.assign(incoming, characterSave(candidate.save(false), game.rules));
@@ -21444,6 +21469,7 @@ async function request(route, data, after) {
       checkpointWrittenAt: /* @__PURE__ */ new Date().toISOString(),
     };
     inheritStorageCapacity(incoming.roles, game.roles);
+    inheritSharedStorageCapacity(incoming, game);
     const candidate = new Game7(game.rules, 1);
     candidate.restore(incoming);
     Object.assign(incoming, characterSave(candidate.save(false), game.rules));
@@ -21487,13 +21513,15 @@ async function request(route, data, after) {
   else if (route.startsWith("command/")) {
     if (
       data?.Shared === true &&
-      ["command/StoreItem", "command/TakeBackItem", "command/SortStorage"].includes(route)
+      ["command/StoreItem", "command/TakeBackItem", "command/SortStorage", "command/UnlockStoragePage"].includes(route)
     ) {
       const role = game.me;
       if (!role) throw Error("invalid");
       const before = structuredClone({
         inventory: role.inventory,
         sharedStorage: game.sharedStorage,
+        sharedStoragePages: game.sharedStoragePages,
+        gold: role.gold,
         nextId: game.nextId,
       });
       try {
@@ -21502,6 +21530,8 @@ async function request(route, data, after) {
       } catch (error) {
         role.inventory = before.inventory;
         game.sharedStorage = before.sharedStorage;
+        game.sharedStoragePages = before.sharedStoragePages;
+        role.gold = before.gold;
         game.nextId = before.nextId;
         throw error;
       }

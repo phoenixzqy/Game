@@ -1916,7 +1916,10 @@ function rs(e, t) {
   const a = e.special?.nativeBeastArmourRank
     ? t.monsters.find((n) => n.DreamOriginalId === 82)
     : void 0;
-  let i = entityText("monsters", a?.Index ?? e.definition);
+  let i = e.special?.nativeBeastArmourRank &&
+    t.monsters.find((n) => n.Index === e.definition)?.DreamOriginalId === 14
+    ? message("skill.sacredBeastGuard")
+    : entityText("monsters", a?.Index ?? e.definition);
   if (e.monsterAffixes)
     for (const n of e.monsterAffixes)
       i = message("monster.affixedName", {
@@ -7422,14 +7425,14 @@ function zs(e, t, a, i) {
     case "BeastArmour": {
       const m = pets(e, t).find(
         (M) =>
-          e.monsters.get(M.definition)?.DreamOriginalId === 62 && !M.special?.nativeBeastArmourRank,
+          [14, 62].includes(e.monsters.get(M.definition)?.DreamOriginalId) && !M.special?.nativeBeastArmourRank,
       );
       if (!m) throw new b(message("core.dream-magic.castDream.019bf7dc80"));
       v = () => {
         ((m.special ??= {}),
           (m.special.nativeBeastArmourRank = s),
           (m.art = e.rules.monsters.find((M) => M.DreamOriginalId === 82)?.Image || m.art),
-          (m.name = "\u5723\u517D"),
+          (m.name = e.monsters.get(m.definition)?.DreamOriginalId === 14 ? "SacredBeastGuard" : "\u5723\u517D"),
           e.refreshActor(m),
           e.emit("ObjectShow", {
             ObjectID: m.id,
@@ -9430,7 +9433,8 @@ function fo(e, t, a) {
     const l = Number(i.modeUntil || 0) > e.time;
     l !== !!i.mode &&
       ((i.mode = l),
-      (t.art = n.DreamOriginalId === 14 ? n.Image : l ? "Shinsu1" : "Shinsu"),
+      (!i.nativeBeastArmourRank &&
+        (t.art = n.DreamOriginalId === 14 ? n.Image : l ? "Shinsu1" : "Shinsu")),
       (t.actionAt = e.time + 1e3),
       e.emit(l ? "ObjectShow" : "ObjectHide", {
         ObjectID: t.id,
@@ -13076,6 +13080,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
     epoch = globalThis.crypto?.randomUUID?.() ?? String(Date.now());
     roles = [];
     sharedStorage = Array(rt).fill(null);
+    sharedStoragePages = 1;
     maps = {};
     geometry = new Map();
     spreadMaps = new Set();
@@ -16260,7 +16265,10 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
         }
         case "UnlockStoragePage": {
           if (this.requireNPC(a).role !== "storage") throw new b(message("storage.unlockNPC"));
-          Wn(a, Number(t.Page));
+          if (t.Shared !== void 0 && typeof t.Shared !== "boolean")
+            throw new b(message("storage.invalidFormat"));
+          if (t.Shared) unlockSharedStoragePage(this, a, Number(t.Page));
+          else Wn(a, Number(t.Page));
           break;
         }
         case "SortInventory": {
@@ -17054,6 +17062,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
           ? {
               sharedStorageGame: sharedStorageGame(this.rules),
               sharedStorageVersion: 1,
+              sharedStoragePages: this.sharedStoragePages,
               sharedStorage: this.sharedStorage,
             }
           : {}),
@@ -17128,6 +17137,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
           ? {
               sharedStorageGame: sharedStorageGame(this.rules),
               sharedStorageVersion: 1,
+              sharedStoragePages: this.sharedStoragePages,
               sharedStorage: this.sharedStorage,
             }
           : {}),
@@ -17148,6 +17158,7 @@ var F = ["Up", "UpRight", "Right", "DownRight", "Down", "DownLeft", "Left", "UpL
         (this.sharedStorage = ce(this.rules)
           ? structuredClone(e.sharedStorage ?? Array(rt).fill(null))
           : Array(rt).fill(null)),
+        (this.sharedStoragePages = ce(this.rules) ? e.sharedStoragePages || 1 : 1),
         (this.maps = structuredClone(e.maps)),
         (this.bossRespawns = {}),
         this.spreadMaps.clear(),
@@ -18275,25 +18286,13 @@ function installAutoBattle(Game, api) {
       });
       return;
     }
-    if (
-      r &&
-      [
-        "Walk",
-        "Run",
-        "Attack",
-        "Magic",
-        "SpellToggle",
-        "MapTeleport",
-        "CallNPC",
-        "PickUp",
-        "PetControl",
-        "ToggleMount",
-      ].includes(type)
-    ) {
+    const result = command.call(this, type, data);
+    // Only accepted player movement/combat commands yield control to the player.
+    if (r && ["Walk", "Run", "Attack", "Magic", "MapTeleport"].includes(type)) {
       const state = autoBattleStates.get(r);
       if (state) state.pauseUntil = this.time + 1500;
     }
-    return command.call(this, type, data);
+    return result;
   };
 }
 
@@ -18532,7 +18531,7 @@ function autoBattleTaoist({ g, r, cfg, api, enemies }) {
     beast &&
     pets.some(
       (a) =>
-        g.monsters.get(a.definition)?.DreamOriginalId === 62 &&
+        [14, 62].includes(g.monsters.get(a.definition)?.DreamOriginalId) &&
         !a.special?.nativeBeastArmourRank,
     )
   )
@@ -19196,6 +19195,7 @@ function Y(e, t) {
       ? {
           sharedStorageGame: sharedStorageGame(t),
           sharedStorageVersion: 1,
+          sharedStoragePages: e.sharedStoragePages || 1,
           sharedStorage: structuredClone(e.sharedStorage ?? Array(80).fill(null)),
         }
       : {}),
@@ -19757,9 +19757,12 @@ function ne(e, t) {
         (n.sharedStorageVersion === 1 && n.sharedStorage === void 0))
     )
       throw new b(message("storage.invalidFormat"));
+    n.sharedStoragePages ??= 1;
+    if (!Number.isSafeInteger(n.sharedStoragePages) || n.sharedStoragePages < 1 || n.sharedStoragePages > 3)
+      throw new b(message("storage.invalidFormat"));
     if (
       (n.sharedStorage === void 0 && (n.sharedStorage = Array(rt).fill(null)),
-      !Array.isArray(n.sharedStorage) || n.sharedStorage.length !== rt)
+      !Array.isArray(n.sharedStorage) || n.sharedStorage.length !== rt * n.sharedStoragePages)
     )
       throw new b(message("storage.invalidFormat"));
     for (const f of n.sharedStorage)
@@ -19768,7 +19771,8 @@ function ne(e, t) {
   } else if (
     n.sharedStorage !== void 0 ||
     n.sharedStorageVersion !== void 0 ||
-    n.sharedStorageGame !== void 0
+    n.sharedStorageGame !== void 0 ||
+    n.sharedStoragePages !== void 0
   )
     throw new b(message("storage.invalidFormat"));
   if ([...o].some((f) => f >= n.nextId)) throw new b(message("storage.objectId"));
@@ -19796,6 +19800,24 @@ function ne(e, t) {
     y.add(f.order);
   }
   return structuredClone(n);
+}
+
+// Shared capacity belongs to this game's account save, rather than one character.
+function unlockSharedStoragePage(g, r, page) {
+  if (!ce(g.rules)) throw new b(message("storage.sharedOnly"));
+  const holder = { storage: g.sharedStorage, storagePages: g.sharedStoragePages || 1, gold: r.gold };
+  Wn(holder, page);
+  g.sharedStoragePages = holder.storagePages;
+  r.gold = holder.gold;
+}
+function inheritSharedStorageCapacity(incoming, previous) {
+  if (incoming.sync?.ownerId && previous.sync?.ownerId &&
+      incoming.sync.ownerId !== previous.sync.ownerId) return;
+  const pages = Math.max(incoming.sharedStoragePages || 1, previous.sharedStoragePages || 1);
+  if (pages > (incoming.sharedStoragePages || 1)) {
+    incoming.sharedStorage.push(...Array(pages * rt - incoming.sharedStorage.length).fill(null));
+    incoming.sharedStoragePages = pages;
+  }
 }
 
 
@@ -20131,6 +20153,7 @@ function wholeProjection(e, t = cloudBaseline(e?.roles || [], e?.sync?.tombstone
   return stringify({
     roles: t,
     sharedStorage: ba(e.sharedStorage || []),
+    ...((e.sharedStoragePages || 1) > 1 ? { sharedStoragePages: e.sharedStoragePages } : {}),
     ...(sharedGame(e) && sharedGame(e) !== "classic-hell"
       ? {
           game: sharedGame(e),
@@ -20418,6 +20441,7 @@ async function sc(e, t, a) {
       : i;
     if (o.sync && o.sync.ownerId !== _) throw Error("accountChanged");
     ht(s.roles, S.roles);
+    inheritSharedStorageCapacity(s, S);
     const r = new Ge(S.rules, 1);
     return (
       r.restore(s),
@@ -20496,7 +20520,8 @@ async function sc(e, t, a) {
     (ft(t, i.sync),
       (n.sync = ft(t, n.sync)),
       (n.sync.checkpointWrittenAt = new Date().toISOString()),
-      ht(n.roles, S.roles));
+      ht(n.roles, S.roles),
+      inheritSharedStorageCapacity(n, S));
     const s = new Ge(S.rules, 1);
     (s.restore(n), Object.assign(n, Y(s.save(!1), S.rules)));
     const o = He(t?.remoteSaveJson ?? t?.saveJson, S.rules, {
@@ -20543,6 +20568,7 @@ async function sc(e, t, a) {
     if (i.sync && i.sync.ownerId !== _) throw Error("accountChanged");
     const n = Vr(S.save(!1), i, t?.roleIds, S.rules, t?.replacements);
     ht(n.roles, S.roles);
+    inheritSharedStorageCapacity(n, S);
     const s = new Ge(S.rules, 1);
     return (
       s.restore(n),
@@ -20599,7 +20625,8 @@ async function sc(e, t, a) {
       lastProgressAt: i.sync?.lastProgressAt ?? i.lastSaved,
       checkpointWrittenAt: new Date().toISOString(),
     }),
-      ht(i.roles, S.roles));
+      ht(i.roles, S.roles),
+      inheritSharedStorageCapacity(i, S));
     const s = new Ge(S.rules, 1);
     return (
       s.restore(i),
@@ -20641,13 +20668,15 @@ async function sc(e, t, a) {
     if (!ze) return S.snapshot(a, Z);
     if (
       t?.Shared === !0 &&
-      ["command/StoreItem", "command/TakeBackItem", "command/SortStorage"].includes(e)
+      ["command/StoreItem", "command/TakeBackItem", "command/SortStorage", "command/UnlockStoragePage"].includes(e)
     ) {
       const n = S.me;
       if (!n) throw Error("invalid");
       const s = structuredClone({
         inventory: n.inventory,
         sharedStorage: S.sharedStorage,
+        sharedStoragePages: S.sharedStoragePages,
+        gold: n.gold,
         nextId: S.nextId,
       });
       try {
@@ -20656,6 +20685,8 @@ async function sc(e, t, a) {
         throw (
           (n.inventory = s.inventory),
           (S.sharedStorage = s.sharedStorage),
+          (S.sharedStoragePages = s.sharedStoragePages),
+          (n.gold = s.gold),
           (S.nextId = s.nextId),
           o
         );

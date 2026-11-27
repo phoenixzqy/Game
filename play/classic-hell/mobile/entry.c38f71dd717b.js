@@ -271,7 +271,7 @@ var MobileController = class {
     this.interaction = 0;
     this.aim = null;
     this.retryAt = 0;
-    this.mapGoal = null;
+    if (journey) this.mapGoal = null;
     if (target) {
       this.target = 0;
       this.manualTarget = false;
@@ -2435,7 +2435,7 @@ function installV2(ctx, hooks) {
   const bagCount = el("em", "m2-bagcount");
   bagBtn.append(bagCount);
   const mountBtn = navButton("m2-mountbtn", "mount", v1t("mount"), v1t("mount"), () => {
-    controller.clear();
+    controller.clear({ journey: false });
     b.command("ToggleMount");
   });
   const menuBtn = navButton("m2-menu", "menu", v1t("menu"), t("menuShort"), () => openHub());
@@ -3446,7 +3446,7 @@ function installV2(ctx, hooks) {
     closeHub();
     closeSheet();
     if (preserveAttack) controller.inspectPanel();
-    else controller.clear();
+    else controller.clear({ journey: false });
     const existing = $("#" + id);
     if (existing) {
       existing.classList.add("m2-full", "m2-native", "mobile-classic");
@@ -3465,7 +3465,7 @@ function installV2(ctx, hooks) {
     }
     closeHub();
     closeDetail();
-    controller.clear();
+    controller.clear({ journey: false });
     const keep = keepWindows || (tab === "bag" && !!$("#win-shop,#win-storage,#win-forge"));
     if (!keep)
       $("#windows")
@@ -4056,7 +4056,7 @@ function installV2(ctx, hooks) {
     closeSheet();
     closeDetail();
     if (b.preserveInspectionAttack) controller.inspectPanel();
-    else controller.clear();
+    else controller.clear({ journey: false });
     hub = { view };
     renderHub();
   }
@@ -4820,7 +4820,7 @@ async function mountMobile(b) {
     viewScale = 0.85;
   const setViewMode = (mode) => {
     viewMode = writeViewMode(mode);
-    controller.clear();
+    controller.clear({ journey: false });
     layout();
   };
   let pauseGeneration = 0,
@@ -4972,7 +4972,7 @@ async function mountMobile(b) {
   }
   root.querySelector("[data-menu]").onclick = menu;
   const mountButton = button("", () => {
-    controller.clear();
+    controller.clear({ journey: false });
     b.command("ToggleMount");
   }, root.querySelector(".mobile-top"));
   mountButton.dataset.action = "mount";
@@ -5003,7 +5003,7 @@ async function mountMobile(b) {
   function dialog(title, inspectX, { preserveAttack = false } = {}) {
     closeDetail();
     if (inspectX !== void 0 && b.preserveInspectionAttack) pauseForPanel();
-    else controller.clear({ preserveAttack });
+    else controller.clear({ preserveAttack, journey: false });
     detail = document.createElement("section");
     detail.className = "mobile-dialog" + (inspectX === void 0 ? "" : " mobile-inspector");
     if (inspectX !== void 0) detail.dataset.side = inspectX < innerWidth / 2 ? "right" : "left";
@@ -5675,8 +5675,9 @@ async function mountMobile(b) {
       stickPointer = null;
       stick.querySelector("i").style.transform = "";
     } else {
-      controller.clear();
-      releaseStick();
+      controller.clear({ journey: false });
+      stickPointer = null;
+      stick.querySelector("i").style.transform = "";
     }
   }
   const steer = (e) => {
@@ -5866,8 +5867,9 @@ async function mountMobile(b) {
   }
   function suspend(reason) {
     pauseGeneration++;
-    controller.clear();
-    releaseStick();
+    controller.clear({ journey: false });
+    stickPointer = null;
+    stick.querySelector("i").style.transform = "";
     worldPointer = null;
     controller.reasons.add(reason);
     resumeRequired = true;
@@ -5882,7 +5884,7 @@ async function mountMobile(b) {
     const button2 = pause.querySelector("button");
     dom.property(button2, "disabled", true);
     try {
-      controller.clear();
+      controller.clear({ journey: false });
       await pauseChain;
       await b.refresh();
       if (ticket !== pauseGeneration || portrait || backgroundBlocked() || !inForeground()) return;
